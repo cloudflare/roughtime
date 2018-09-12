@@ -1,4 +1,4 @@
-# Cloudflare-Roughtime
+# Roughtime
 
 This package implements a simple Roughtime client that is based on [Google's
 implementation](https://roughtime.googlesource.com/roughtime). To run it, do:
