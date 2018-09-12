@@ -1,6 +1,6 @@
 # Roughtime
 
-This package implements a simple Roughtime client that is based on [Google's
+This package implements a simple Roughtime client based on [Google's
 implementation](https://roughtime.googlesource.com/roughtime). To run it, do:
 ```
 $ go get -u github.com/cloudflare/roughtime
