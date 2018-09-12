@@ -1,3 +1,5 @@
+// Copyright 2018 Cloudflare, Inc.
+
 // +build ignore
 
 // This example configures a TLS client to use Roughtime to synchronize its
@@ -45,7 +47,8 @@ func main() {
 	res := roughtime.Do(rtServers, *dialAttempts, *dialTimeout, nil)
 
 	// Compute the average difference between t0 and the time reported by each
-	// server. (Note that this accounts for network delay.)
+	// server, rejecting those responses whose radii are too large. (Note that
+	// this accounts for network delay.)
 	delta, err := roughtime.AvgDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
 	if err != nil {
 		logger.Fatal(err)

@@ -1,3 +1,5 @@
+// Copyright 2018 Cloudflare, Inc.
+
 // +build ignore
 
 // This program performs a sequence of Roughtime queries and creates an alert
@@ -52,7 +54,7 @@ func main() {
 	}
 
 	// Compute the average difference between t0 and the time reported by the
-	// each server.
+	// each server, excluding those servers whose radii are too large.
 	delta, err := roughtime.AvgDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
 	if err != nil {
 		logger.Fatal(err)

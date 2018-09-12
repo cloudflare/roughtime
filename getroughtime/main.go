@@ -1,6 +1,6 @@
 // Copyright 2018 Cloudflare, Inc.
 
-// A simple Roughtime roughtime.
+// A simple Roughtime client.
 package main
 
 import (
