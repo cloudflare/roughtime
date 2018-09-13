@@ -1,5 +1,3 @@
-// Copyright 2018 Cloudflare, Inc.
-
 // +build ignore
 
 // This example configures a TLS client to use Roughtime to synchronize its
@@ -21,7 +19,7 @@ import (
 
 var (
 	caFile       = flag.String("ca", "data/ca.pem", "File with the server's CA certificate")
-	rtConfig     = flag.String("rt", "data/roughtime.config", "File with the Roughtime configuration")
+	rtConfig     = flag.String("rt", "data/ecosystem.config", "File with the Roughtime configuration")
 	dialAttempts = flag.Int("a", roughtime.DefaultQueryAttempts, "Number of times to try dialing each Roughtime server")
 	dialTimeout  = flag.Duration("d", roughtime.DefaultQueryTimeout, "Time to wait for each dial attempt")
 	rtMaxRadius  = flag.Duration("r", time.Second*10, "Maximum uncertainty radius permitted from Roughtime server")
