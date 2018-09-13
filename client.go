@@ -140,7 +140,8 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 	}, nil
 }
 
-// Now returns the time provided by a Roughtime response.
+// Now returns the time provided by a Roughtime response. The first output
+// parameter is the timestamp and the second is the uncertainty radius.
 func (rt *Roughtime) Now() (time.Time, time.Duration) {
 	return getMidpoint(rt.Midpoint), getRadius(rt.Radius)
 }
@@ -283,7 +284,8 @@ func DoFromFile(configFile string, attempts int, timeout time.Duration, prev *Ro
 
 // AvgDeltaWithRadiusThresh computes the average difference between t0
 // and the time reported by each server, rejecting responses whose uncertainty
-// radii aren't within the accepted limit.
+// radii aren't within the accepted limit. The calculation accounts for the
+// network latency measured by the client.
 func AvgDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Duration) (time.Duration, error) {
 	if len(results) == 0 {
 		return 0, errors.New("no results")
