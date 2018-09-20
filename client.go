@@ -58,31 +58,39 @@ func init() {
 	SetLogger(nil)
 }
 
-// Roughtime stores the result of a successful Roughtime query.
+// Roughtime stores the request and response of a successful Roughtime query. It
+// implements the Stringer interface.
 type Roughtime struct {
-	// The request and the blind used to generate the nonce of the request.
-	Req, Blind []byte
+	// The request.
+	Req []byte
+
+	// The blind used to generate the nonce of the request.
+	Blind []byte
+
 	// The bytes of the response.
 	Resp []byte
-	// The time reported by the server (in microseconds).
+
+	// The time reported by the server (microseconds since the Unix epoch).
 	Midpoint uint64
+
 	// The "uncertainty radius" of the server's reported time (in microseconds).
 	// It indicates that the server is "reasonably sure" that the real is within
 	// this number of microseconds of the real time.
 	Radius uint32
 }
 
-// Get sends a request to a server and verifies the response. It makes
-// at most as many attempts as specified, waiting for the given amount of time
-// for each reply. It uses prev to generate the nonce of the request. This
-// may nil, in which case the request is the first in the chain.
+// Get sends a request to a server and verifies the response. It makes at most
+// as many attempts as specified, waiting for the given amount of time for each
+// reply. It uses prev to generate the nonce of the request. This may be nil, in
+// which case this request is the first in a chain.
 func Get(server *config.Server, attempts int, timeout time.Duration, prev *Roughtime) (*Roughtime, error) {
 	var reply, prevReply []byte
+
+	// Create the request.
 	if prev != nil {
 		prevReply = prev.Resp
 	}
 
-	// Create the request.
 	nonce, blind, request, err := protocol.CreateRequest(rand.Reader, prevReply)
 	if err != nil {
 		panic(fmt.Sprintf("internal error: %s", err))
@@ -140,19 +148,19 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 	}, nil
 }
 
-// Now returns the time provided by a Roughtime response. The first output
+// Now returns the time provided by a Roughtime server. The first output
 // parameter is the timestamp and the second is the uncertainty radius.
 func (rt *Roughtime) Now() (time.Time, time.Duration) {
 	return getMidpoint(rt.Midpoint), getRadius(rt.Radius)
 }
 
-// getMidpoint converts a timestamp sent from the server to a Go-style
+// getMidpoint converts a timestamp sent from the server to a Go-friendly
 // timestamp.
 func getMidpoint(midpoint uint64) time.Time {
 	return time.Unix(0, int64(midpoint)*1000)
 }
 
-// getRadius converts the server radius to a Go-style duration.
+// getRadius converts the server radius to a Go-friendly duration.
 func getRadius(radius uint32) time.Duration {
 	return time.Duration(radius) * 1000
 }
@@ -233,9 +241,13 @@ func LoadConfig(configFile string) (servers []config.Server, skipped int, err er
 // is either a server's time or an error.
 type Result struct {
 	*Roughtime
+
+	// The configuration of the server used for the query.
 	Server *config.Server
+
 	// The network delay incurred by the query.
 	Delay time.Duration
+
 	// The error recorded on an unsuccessful query.
 	err error
 }
@@ -320,11 +332,13 @@ func AvgDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Durati
 	return delta / time.Duration(ct), nil
 }
 
-// Chain represents a sequence of ordered Roughtime queries.
+// Chain represents a sequence of ordered Roughtime responses.
 type Chain struct {
 	*Roughtime
+
 	// The server who signed the response.
 	Server *config.Server
+
 	// The next query in the chain.
 	Next *Chain
 }
@@ -347,7 +361,7 @@ func NewChain(results []Result) *Chain {
 }
 
 // Verify returns true if the chain is valid. A chain is valid if for each link
-// in the chain, (1) the signature in the server's response is valid, and (2) the
+// in the chain (1) the signature in the server's response is valid, and (2) the
 // response was used to generate the nonce in the next link's request.
 //
 // If prev != nil, then prev.Resp is used to compute the nonce for the first

@@ -26,7 +26,7 @@ var (
 	getVersion = flag.Bool("version", false, "Print the version and exit.")
 	configFile = flag.String("config", "", "A list of Roughtime servers.")
 	pingAddr   = flag.String("ping", "", "Send a UDP request, e.g., localhost:2002.")
-	pingPubKey = flag.String("pubkey", "", "The Ed25519 public key of the address to ping.")
+	pingPubKey = flag.String("pubkey", "", "Base64-encoded Ed25519 public key of the address to ping.")
 	attempts   = flag.Int("attempts", roughtime.DefaultQueryAttempts, "Number of times to try each server.")
 	timeout    = flag.Duration("timeout", roughtime.DefaultQueryTimeout, "Amount of time to wait for each request.")
 )
@@ -42,14 +42,19 @@ func main() {
 	}
 
 	if *configFile != "" {
+		// Get the system's current time and query the Roughtime servers.
 		t0 := time.Now()
 		res, err := roughtime.DoFromFile(*configFile, *attempts, *timeout, nil)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatalf("error: %s", err)
 		}
+
+		// Compute the average difference between the system's time and the
+		// Roughtime responses from the servers, rejecting responses whose radii
+		// are larger than 10 seconds.
 		delta, err := roughtime.AvgDeltaWithRadiusThresh(res, t0, 10*time.Second)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Fatalf("error: %s", err)
 		}
 		logger.Printf("delta: %v", delta.Truncate(time.Millisecond))
 		os.Exit(0)
@@ -61,9 +66,9 @@ func main() {
 		}
 		pk, err := base64.StdEncoding.DecodeString(*pingPubKey)
 		if err != nil {
-			logger.Fatalf("pubkey decode error: %s\n", err)
+			logger.Fatalf("ping: pubkey decode error: %s\n", err)
 		} else if len(pk) != 32 {
-			logger.Fatalf("pubkey decode error: incorrect length")
+			logger.Fatalf("ping: pubkey decode error: incorrect length")
 		}
 
 		server := &config.Server{
