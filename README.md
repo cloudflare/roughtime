@@ -16,7 +16,6 @@ Cloudflare-Roughtime: 2018-09-20 10:25:10.568 -0400 EDT ±1s (in 14ms)
 Google-Sandbox-Roughtime: 2018-09-20 10:25:10.587429 -0400 EDT ±1s (in 20ms)
 int08h-Roughtime: 2018-09-20 10:25:10.618522 -0400 EDT ±1s (in 40ms)
 delta: -12ms
-
 ```
 For more information about Roughtime and tips for writing your own client, visit
 the [developer documentation](https://developers.cloudflare.com/roughtime/).
