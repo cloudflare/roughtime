@@ -261,11 +261,11 @@ func (r *Result) Error() error {
 // fails, then the error is recorded. The nonce of each request is computed from
 // the response of the last, skipping requests that fail.
 func Do(servers []config.Server, attempts int, timeout time.Duration, prev *Roughtime) []Result {
-	results := make([]Result, 0)
+	results := make([]Result, len(servers))
 	var delay time.Duration
 	for i, _ := range servers {
-		srv := &servers[i]
 		start := time.Now()
+		srv := &servers[i]
 		rt, err := Get(srv, attempts, timeout, prev)
 		delay = time.Since(start)
 		if err == nil { // Request succeeded
@@ -274,7 +274,10 @@ func Do(servers []config.Server, attempts int, timeout time.Duration, prev *Roug
 		} else { // Request failed
 			logger.Printf("skipped %s: %s\n", srv.Name, err)
 		}
-		results = append(results, Result{rt, srv, delay, err})
+		results[i].err = err
+		results[i].Roughtime = rt
+		results[i].Server = srv
+		results[i].Delay = time.Since(start)
 	}
 	return results
 }
@@ -282,6 +285,10 @@ func Do(servers []config.Server, attempts int, timeout time.Duration, prev *Roug
 // DoFromFile loads a sequence of server configurations from configFile and requests
 // Roughtime from them in order.
 func DoFromFile(configFile string, attempts int, timeout time.Duration, prev *Roughtime) ([]Result, error) {
+	// Measure the delay that results from loading the configuration file.
+	start := time.Now()
+
+	// Load the configuration file.
 	servers, skipped, err := LoadConfig(configFile)
 	if err != nil {
 		return nil, err
@@ -290,8 +297,15 @@ func DoFromFile(configFile string, attempts int, timeout time.Duration, prev *Ro
 	} else if skipped > 0 {
 		return nil, fmt.Errorf("would skip %d servers", skipped)
 	}
+	delay := time.Since(start)
 
-	return Do(servers, attempts, timeout, prev), nil
+	// Perform the queries.
+	results := Do(servers, attempts, timeout, prev)
+
+	// Add the load time to the delay observed by the first query.
+	results[0].Delay += delay
+
+	return results, nil
 }
 
 // AvgDeltaWithRadiusThresh computes the average difference between t0
@@ -319,8 +333,6 @@ func AvgDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Durati
 			// Add the delta between this time and t0, accounting for the
 			// network delay accumulated so far.
 			delta += t1.Sub(t0) - delay
-
-			// Reset the delay accumulator.
 			ct++
 		}
 	}
