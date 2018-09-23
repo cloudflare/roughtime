@@ -5,6 +5,27 @@ servers. This file contains a brief description of how each server is
 provisioned. Refer to `README.md` for information about adding your server to
 the list.
 
+## Chainpoint-Roughtime
+
+The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
+at `roughtime.chainpoint.org:2002`. The public key, and information about
+running the Docker container we've created for [roughenough](https://github.com/int08h/roughenough),
+is provided at [https://github.com/chainpoint/chainpoint-roughtime](https://github.com/chainpoint/chainpoint-roughtime).
+
+In addition to the Github repository `README.md`, the long-term public key in
+Hexadecimal form is also provided as a DNS `TXT` record accessible with:
+
+```
+$ dig -t txt roughtime.chainpoint.org
+```
+
+The Chainpoint Roughtime service is in open beta, but aims to operate with
+high-availability. The [roughenough](https://github.com/int08h/roughenough)
+Rust implementation of Roughtime is currently running on two servers in the
+Google Compute Engine cloud (US-EAST4), both synced to Google's internal
+high accuracy NTP service. These servers exist behind a public UDP
+load-balancer and a Cloudflare DNS `A` record.
+
 
 ## Cloudflare-Roughtime
 
