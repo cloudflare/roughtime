@@ -25,7 +25,7 @@ the [developer documentation](https://developers.cloudflare.com/roughtime/).
 We welcome pull requests for adding your Roughtime service to our list. Your PR
 should do the following:
 
-  * Add your server's configuration to `ecosystem.config`. The list of servers
+  * Add your server's configuration to `ecosystem.json`. The list of servers
     will be alphabetized by the `"name"` field.
 
   * Add some information about your service to `ecosystem.md`. (This is also

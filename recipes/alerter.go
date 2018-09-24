@@ -21,7 +21,7 @@ import (
 
 var (
 	caFile         = flag.String("ca", "recipes/testdata/ca.pem", "File with the server's CA certificate")
-	rtConfig       = flag.String("rt", "ecosystem.config", "File with the Roughtime configuration")
+	rtConfig       = flag.String("rt", "ecosystem.json", "File with the Roughtime configuration")
 	dialAttempts   = flag.Int("a", roughtime.DefaultQueryAttempts, "Number of times to try dialing each Roughtime server")
 	dialTimeout    = flag.Duration("d", roughtime.DefaultQueryTimeout, "Time to wait for each dial attempt")
 	rtMaxRadius    = flag.Duration("r", time.Second*10, "Maximum uncertainty radius permitted from Roughtime server")
