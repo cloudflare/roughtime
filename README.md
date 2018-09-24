@@ -11,7 +11,7 @@ ping response: 2018-09-20 10:26:56.327 -0400 EDT ±1s (in 16ms)
 ```
 Or, better yet, use multiple servers!
 ```
-$ getroughtime -config ~/go/src/github.com/cloudflare/roughtime/ecosystem.config
+$ getroughtime -config ~/go/src/github.com/cloudflare/roughtime/ecosystem.json
 Cloudflare-Roughtime: 2018-09-20 10:25:10.568 -0400 EDT ±1s (in 14ms)
 Google-Sandbox-Roughtime: 2018-09-20 10:25:10.587429 -0400 EDT ±1s (in 20ms)
 int08h-Roughtime: 2018-09-20 10:25:10.618522 -0400 EDT ±1s (in 40ms)
