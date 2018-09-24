@@ -20,7 +20,7 @@ delta: -12ms
 For more information about Roughtime and tips for writing your own client, visit
 the [developer documentation](https://developers.cloudflare.com/roughtime/).
 
-## Ecosystem
+## Ecosystem guidelines
 
 We welcome pull requests for adding your Roughtime service to our list. Your PR
 should do the following:
@@ -48,6 +48,9 @@ A couple things to keep in mind:
     server is unreliable, or its root secret key has been compromised.)
 
 Finally, a disclaimer: the ecosystem is growing, and ours might not be the
-definitive list of who is serving Roughtime at any given time. There's a [Google
+definitive list of who is serving Roughtime at any given time. For details about
+the current state and the future of the protocol, see Adam Langley's [write
+up](https://roughtime.googlesource.com/roughtime/+/HEAD/ECOSYSTEM.md) about the
+Roughtime ecosystem. There's also a [Google
 group](https://groups.google.com/a/chromium.org/forum/#!forum/proto-roughtime)
-with ongoing discussions about the current state and the future of the protocol.
+with ongoing discussion.
