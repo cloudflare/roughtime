@@ -5,6 +5,7 @@ servers. This file contains a brief description of how each server is
 provisioned. Refer to `README.md` for information about adding your server to
 the list.
 
+
 ## Chainpoint-Roughtime
 
 The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
@@ -48,3 +49,24 @@ server](https://roughtime.googlesource.com/roughtime/#current-state-of-the-proje
 It is experimental and does not, as of yet, provide uptime guarantees. The root
 public key is published
 [here](https://roughtime.googlesource.com/roughtime/+/master/roughtime-servers.json).
+
+
+## int08h-Roughtime
+
+A public Roughtime server operated by the author of the [Rust](https://github.com/int08h/roughenough) 
+and [Java](https://github.com/int08h/nearenough) implementations of Roughtime.
+
+The server runs the latest release of [roughenough](https://github.com/int08h/roughenough) 
+on a Google Compute Engine instance within us-central1 and sources time from Google's 
+[leapsecond smeared NTP](https://developers.google.com/time/smear) servers. 
+Available at `roughtime.int08h.com:2002` its public key is stable and the service 
+is available 24/7. 
+
+The public key is available from the `README.md` in this project, 
+a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
+and from a DNS `TXT` record: 
+
+```
+$ dig -t txt roughtime.int08h.com
+```
+
