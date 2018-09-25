@@ -43,6 +43,17 @@
           "address": "roughtime.int08h.com:2002"
         }
       ]
+    },
+    {
+      "name": "ticktock",
+      "publicKeyType": "ed25519",
+      "publicKey": "cj8GsiNlRkqiDElAeNMSBBMwrAl15hYPgX50+GWX/lA=",
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "ticktock.mixmin.net:5333"
+        }
+      ]
     }
   ]
 }
