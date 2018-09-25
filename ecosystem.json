@@ -1,6 +1,17 @@
 {
   "servers": [
     {
+      "name": "Chainpoint-Roughtime",
+      "publicKeyType": "ed25519",
+      "publicKey": "bbT+RPS7zKX6w71ssPibzmwWqU9ffRV5oj2OresSmhE=",
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "roughtime.chainpoint.org:2002"
+        }
+      ]
+    },
+    {
       "name": "Cloudflare-Roughtime",
       "publicKeyType": "ed25519",
       "publicKey": "gD63hSj3ScS+wuOeGrubXlq35N1c5Lby/S+T7MNTjxo=",
