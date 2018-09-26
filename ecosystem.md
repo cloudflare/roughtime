@@ -5,7 +5,6 @@ servers. This file contains a brief description of how each server is
 provisioned. Refer to `README.md` for information about adding your server to
 the list.
 
-
 ## Chainpoint-Roughtime
 
 The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
@@ -64,9 +63,7 @@ is available 24/7.
 
 The public key is available from the `README.md` in this project, 
 a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
-and from a DNS `TXT` record: 
+and the DNS `TXT` record of `roughtime.int08h.com` (see the 
+[Chainpoint](#chainpoint-roughtime) entry for how to look this up with `dig`).
 
-```
-$ dig -t txt roughtime.int08h.com
-```
 
