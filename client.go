@@ -29,8 +29,8 @@ import (
 	"net"
 	"time"
 
-	"roughtime.googlesource.com/go/config"
-	"roughtime.googlesource.com/go/protocol"
+	"github.com/cloudflare/roughtime/config"
+	"github.com/cloudflare/roughtime/protocol"
 )
 
 const (
