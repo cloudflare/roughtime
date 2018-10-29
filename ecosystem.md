@@ -68,3 +68,12 @@ and the DNS `TXT` record of `roughtime.int08h.com` (see the
 [Chainpoint](#chainpoint-roughtime) entry for how to look this up with `dig`).
 
 
+## Mixmin Roughtime
+
+Mixmin's Roughtime service resides on a dedicated Raspberry Pi running Arch
+Linux.  The Pi has an Adafruit GPS module fitted and uses it to sync the system
+clock via NTP.  It uses Adam Langley's reference implementation of Roughtime,
+written in Go and is compiled locally on the Raspberry Pi.  The Roughtime
+server was announced on the mailing list, archived
+[here](https://groups.google.com/a/chromium.org/forum/#!topic/proto-roughtime/7PApRXJ-x0Y).
+The announcement includes the server details.
