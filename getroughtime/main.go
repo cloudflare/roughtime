@@ -12,8 +12,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/roughtime"
-
-	"roughtime.googlesource.com/go/config"
+	"roughtime.googlesource.com/roughtime.git/go/config"
 )
 
 var (

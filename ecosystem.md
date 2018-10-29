@@ -60,3 +60,20 @@ written in Go and is compiled locally on the Raspberry Pi.  The Roughtime
 server was announced on the mailing list, archived
 [here](https://groups.google.com/a/chromium.org/forum/#!topic/proto-roughtime/7PApRXJ-x0Y).
 The announcement includes the server details.
+
+
+## int08h-Roughtime
+
+A public Roughtime server operated by the author of the [Rust](https://github.com/int08h/roughenough) 
+and [Java](https://github.com/int08h/nearenough) implementations of Roughtime.
+
+The server runs the latest release of [roughenough](https://github.com/int08h/roughenough) 
+on a Google Compute Engine instance within us-central1 and sources time from Google's 
+[leapsecond smeared NTP](https://developers.google.com/time/smear) servers. 
+Available at `roughtime.int08h.com:2002` its public key is stable and the service 
+is available 24/7. 
+
+The public key is available from the `README.md` in this project, 
+a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
+and the DNS `TXT` record of `roughtime.int08h.com` (see the 
+[Chainpoint](#chainpoint-roughtime) entry for how to look this up with `dig`).
