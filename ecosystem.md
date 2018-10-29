@@ -49,3 +49,14 @@ server](https://roughtime.googlesource.com/roughtime/#current-state-of-the-proje
 It is experimental and does not, as of yet, provide uptime guarantees. The root
 public key is published
 [here](https://roughtime.googlesource.com/roughtime/+/master/roughtime-servers.json).
+
+
+## Mixmin Roughtime
+
+Mixmin's Roughtime service resides on a dedicated Raspberry Pi running Arch
+Linux.  The Pi has an Adafruit GPS module fitted and uses it to sync the system
+clock via NTP.  It uses Adam Langley's reference implementation of Roughtime,
+written in Go and is compiled locally on the Raspberry Pi.  The Roughtime
+server was announced on the mailing list, archived
+[here](https://groups.google.com/a/chromium.org/forum/#!topic/proto-roughtime/7PApRXJ-x0Y).
+The announcement includes the server details.
