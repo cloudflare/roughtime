@@ -6,6 +6,34 @@ provisioned. Refer to `README.md` for information about adding your server to
 the list.
 
 
+## Caesium
+
+[Caesium](https://caesium.tannerryan.ca), aptly named after the element defining
+a second, runs on a stratum 2 NTP server hosted in Toronto, Canada. 
+
+The clock is synchronized with authenticated NTP connections to NIST (National
+Institute of Standards and Technology) and the Canadian equivalent: NRC
+(National Research Council Canada), which are both directly connected to atomic
+clocks (caesium fountains and/or hydrogen masers). There are also multiple
+unauthenticated stratum 1 upstreams, maintained by GNSS (GPS + Galileo +
+GLONASS). The accuracy is typically better than +/- 30 microseconds.
+
+The Roughtime service is accessible at `caesium.tannerryan.ca:2002`. The public
+key may be found on Caesium's [website](https://caesium.tannerryan.ca), or
+through a DNS TXT lookup.
+
+```
+dig TXT caesium.tannerryan.ca +short
+```
+
+The Roughtime service is powered by Google's [Go reference
+implementation](https://roughtime.googlesource.com/roughtime/).
+
+No uptime is guaranteed, but the server is constantly monitored for accuracy and
+availability. From time to time, there may be a few minutes of downtime for
+server maintenance.
+
+
 ## Chainpoint-Roughtime
 
 The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
