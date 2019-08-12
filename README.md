@@ -37,6 +37,9 @@ should do the following:
      3. where in the world your server is located; and
      4. whether you will guarantee up time, and if so, how you will do so.
 
+  * Add your server's configuration to `ecosystem.json.go`. For this, it is
+    preferable to use the "go run ./ecosystem_json_go_builder" command.
+
 A couple things to keep in mind:
 
   * To be healthy, the Roughtime ecosystem **needs a diverse set of time
