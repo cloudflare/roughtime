@@ -29,8 +29,8 @@ import (
 	"net"
 	"time"
 
-	"roughtime.googlesource.com/roughtime.git/go/protocol"
 	"roughtime.googlesource.com/roughtime.git/go/config"
+	"roughtime.googlesource.com/roughtime.git/go/protocol"
 )
 
 const (
@@ -398,3 +398,5 @@ func (chain *Chain) Verify(prev *Roughtime) (bool, error) {
 	}
 	return true, nil
 }
+
+//go:generate go run ./ecosystem_json_go_builder

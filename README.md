@@ -38,7 +38,7 @@ should do the following:
      4. whether you will guarantee up time, and if so, how you will do so.
 
   * Add your server's configuration to `ecosystem.json.go`. For this, it is
-    preferable to use the "go run ./ecosystem_json_go_builder" command.
+    preferable to use the "go generate" command.
 
 A couple things to keep in mind:
 
