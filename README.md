@@ -37,8 +37,8 @@ should do the following:
      3. where in the world your server is located; and
      4. whether you will guarantee up time, and if so, how you will do so.
 
-  * Add your server's configuration to `ecosystem.json.go`. For this, it is
-    preferable to use the "go generate" command.
+  * Generate the `ecosystem.json.go` from the `ecosystem.json`. Use the
+    `go generate` command for this.
 
 A couple things to keep in mind:
 
