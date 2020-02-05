@@ -1,4 +1,4 @@
-module "https://github.com/cloudflare/roughtime"
+module github.com/cloudflare/roughtime
 
 go 1.12
 
