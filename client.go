@@ -29,8 +29,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/cloudflare/roughtime/mjd"
+	"github.com/cloudflare/roughtime/protocol"
 	"roughtime.googlesource.com/roughtime.git/go/config"
-	"roughtime.googlesource.com/roughtime.git/go/protocol"
 )
 
 const (
@@ -70,8 +71,8 @@ type Roughtime struct {
 	// The bytes of the response.
 	Resp []byte
 
-	// The time reported by the server (microseconds since the Unix epoch).
-	Midpoint uint64
+	// The time reported by the server
+	Midpoint mjd.Mjd
 
 	// The "uncertainty radius" of the server's reported time (in microseconds).
 	// It indicates that the server is "reasonably sure" that the real is within
@@ -156,8 +157,8 @@ func (rt *Roughtime) Now() (time.Time, time.Duration) {
 
 // getMidpoint converts a timestamp sent from the server to a Go-friendly
 // timestamp.
-func getMidpoint(midpoint uint64) time.Time {
-	return time.Unix(0, int64(midpoint)*1000)
+func getMidpoint(midpoint mjd.Mjd) time.Time {
+	return midpoint.Unix()
 }
 
 // getRadius converts the server radius to a Go-friendly duration.
