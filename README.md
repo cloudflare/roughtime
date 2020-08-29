@@ -1,24 +1,24 @@
 # Roughtime
 
-This package implements a simple Roughtime client based on [Google's
-implementation](https://roughtime.googlesource.com/roughtime). To run it, do:
-```
-$ go get -u github.com/cloudflare/roughtime
-$ go install github.com/cloudflare/roughtime...
-$ getroughtime -ping roughtime.cloudflare.com:2002 \
-    -pubkey gD63hSj3ScS+wuOeGrubXlq35N1c5Lby/S+T7MNTjxo=
-ping response: 2018-09-20 10:26:56.327 -0400 EDT ±1s (in 16ms)
-```
-Or, better yet, use multiple servers!
-```
-$ getroughtime -config ~/go/src/github.com/cloudflare/roughtime/ecosystem.json
-Cloudflare-Roughtime: 2018-09-20 10:25:10.568 -0400 EDT ±1s (in 14ms)
-Google-Sandbox-Roughtime: 2018-09-20 10:25:10.587429 -0400 EDT ±1s (in 20ms)
-int08h-Roughtime: 2018-09-20 10:25:10.618522 -0400 EDT ±1s (in 40ms)
-delta: -12ms
-```
-For more information about Roughtime and tips for writing your own client, visit
-the [developer documentation](https://developers.cloudflare.com/roughtime/).
+This package implements a simple Roughtime client based on the
+[IETF draft](https://datatracker.ietf.org/doc/draft-ietf-ntp-roughtime/)
+
+For more information about Roughtime and tips for writing your own
+client or server, visit the [developer
+documentation](https://developers.cloudflare.com/roughtime/).
+
+## Note on status
+
+Roughtime is now experimental and will undergo backwards incompatible
+changes as it goes through the IETF process. This library will
+likewise undergo backwards incompatible changes. There are already
+substantial changes from Google Roughtime that have forced interface changes.
+
+If you want to use this code and the protocol please join the NTP WG
+[mailing list](https://www.ietf.org/mailman/listinfo/ntp) so that you are
+aware of the evolution of the protocol and issues that others discover.
+
+** DO NOT USE IN PRODUCTION SOFTWARE **
 
 ## Ecosystem guidelines
 
@@ -36,6 +36,7 @@ should do the following:
      2. if your code is open source, a link to the code;
      3. where in the world your server is located; and
      4. whether you will guarantee up time, and if so, how you will do so.
+     5. what version you run
 
   * Generate the `ecosystem.json.go` from the `ecosystem.json`. Use the
     `go generate` command for this.
@@ -49,11 +50,14 @@ A couple things to keep in mind:
 
   * We reserve the right to prune this list at any time. (For example, if a
     server is unreliable, or its root secret key has been compromised.)
+    
+  * As new versions come out we may prune servers that do not update.
 
 Finally, a disclaimer: the ecosystem is growing, and ours might not be the
-definitive list of who is serving Roughtime at any given time. For details about
-the current state and the future of the protocol, see Adam Langley's [write
-up](https://roughtime.googlesource.com/roughtime/+/HEAD/ECOSYSTEM.md) about the
-Roughtime ecosystem. There's also a [Google
-group](https://groups.google.com/a/chromium.org/forum/#!forum/proto-roughtime)
-with ongoing discussion.
+definitive list of who is serving Roughtime at any given time.
+
+## Contributing
+
+We welcome your bug fixes, issues, and improvements to either the
+protocol or this code. Note that substantive changes to the protocol
+need to be discussed on the NTP WG mailing list.
