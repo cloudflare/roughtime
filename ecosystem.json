@@ -1,17 +1,6 @@
 {
   "servers": [
     {
-      "name": "Caesium",
-      "publicKeyType": "ed25519",
-      "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
-      "addresses": [
-        {
-          "protocol": "udp",
-          "address": "caesium.tannerryan.ca:2002"
-        }
-      ]
-    },
-    {
       "name": "Chainpoint-Roughtime",
       "publicKeyType": "ed25519",
       "publicKey": "bbT+RPS7zKX6w71ssPibzmwWqU9ffRV5oj2OresSmhE=",
@@ -63,6 +52,17 @@
         {
           "protocol": "udp",
           "address": "ticktock.mixmin.net:5333"
+        }
+      ]
+    },
+    {
+      "name": "time.0xt.ca",
+      "publicKeyType": "ed25519",
+      "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "time.0xt.ca:2002"
         }
       ]
     }
