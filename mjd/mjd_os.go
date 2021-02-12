@@ -8,7 +8,7 @@ func Now() Mjd {
 	time := unix.Timeval{}
 	err := unix.Gettimeofday(&time) // result has microseconds
 	if err != nil {
-		panic("adjtimex failed")
+		panic("gettimeofday failed")
 	}
 	retval := Mjd{}
 	daysPostEpoch := time.Sec / secs_per_day
