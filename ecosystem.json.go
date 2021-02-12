@@ -3,7 +3,7 @@
 package roughtime
 
 import (
-	"roughtime.googlesource.com/roughtime.git/go/config"
+	"github.com/cloudflare/roughtime/config"
 )
 
 var Ecosystem = []config.Server{
