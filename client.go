@@ -29,9 +29,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/cloudflare/roughtime/config"
 	"github.com/cloudflare/roughtime/mjd"
 	"github.com/cloudflare/roughtime/protocol"
-	"roughtime.googlesource.com/roughtime.git/go/config"
 )
 
 const (
@@ -100,6 +100,8 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 		panic("internal error: bad request length")
 	}
 
+	request = protocol.EncapsulatePacket(protocol.Version, request)
+
 	udpAddr, err := serverUDPAddr(server)
 	if err != nil {
 		return nil, err
@@ -115,7 +117,7 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 		conn.SetReadDeadline(time.Now().Add(timeout))
 		conn.Write(request)
 
-		var replyBytes [1024]byte
+		var replyBytes [1280]byte
 
 		n, err := conn.Read(replyBytes[:])
 		if err == nil {
@@ -135,6 +137,10 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 	}
 
 	// Verify the response.
+	reply, err = protocol.DencapsulatePacket(reply)
+	if err != nil {
+		return nil, err
+	}
 	midpoint, radius, err := protocol.VerifyReply(reply, server.PublicKey, nonce)
 	if err != nil {
 		return nil, err

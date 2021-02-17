@@ -14,7 +14,7 @@
 
 // Package protocol implements the core of the Roughtime protocol.
 
-// Modified by Cloudflare 2020 to implement draft version 01 and succeeding.
+// Modified by Cloudflare 2020 to implement draft version 03 and succeeding.
 package protocol
 
 import (
@@ -22,16 +22,18 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"sort"
 
 	"github.com/cloudflare/roughtime/mjd"
+	"github.com/cloudflare/roughtime/sha512trunc"
 	"golang.org/x/crypto/ed25519"
 )
 
 const (
-	Version = 0x80000002
+	Version = 0x80000003
 	// NonceSize is the number of bytes in a nonce.
 	NonceSize = 32
 	// MinRequestSize is the minimum number of bytes in a request.
@@ -218,7 +220,7 @@ func messageOverhead(numTags int) int {
 // CalculateChainNonce calculates the nonce to be used in the next request in a
 // chain given a reply and a blinding factor.
 func CalculateChainNonce(prevReply, blind []byte) (nonce [NonceSize]byte) {
-	h := sha512.New512_256()
+	h := sha512trunc.New()
 	h.Write(prevReply)
 	prevReplyHash := h.Sum(nil)
 
@@ -236,7 +238,7 @@ func CalculateChainNonce(prevReply, blind []byte) (nonce [NonceSize]byte) {
 // reply), the blind (needed to prove correct chaining to an external party)
 // and the request itself.
 func CreateRequest(rand io.Reader, prevReply []byte) (nonce, blind [NonceSize]byte, request []byte, err error) {
-	versionBytes := []byte{0x02, 0x00, 0x00, 0x80}
+	versionBytes := []byte{0x03, 0x00, 0x00, 0x80}
 	if _, err := io.ReadFull(rand, blind[:]); err != nil {
 		return nonce, blind, nil, err
 	}
@@ -269,7 +271,7 @@ var (
 
 // hashLeaf hashes an nonce to form the leaf of the Merkle tree.
 func hashLeaf(out *[sha512.Size256]byte, in []byte) {
-	h := sha512.New512_256()
+	h := sha512trunc.New()
 	h.Write(hashLeafTweak)
 	h.Write(in)
 	h.Sum(out[:0])
@@ -278,7 +280,7 @@ func hashLeaf(out *[sha512.Size256]byte, in []byte) {
 // hashNode hashes two child elements of the Merkle tree to produce an interior
 // node.
 func hashNode(out *[sha512.Size256]byte, left, right []byte) {
-	h := sha512.New512_256()
+	h := sha512trunc.New()
 	h.Write(hashNodeTweak)
 	h.Write(left)
 	h.Write(right)
@@ -392,7 +394,7 @@ func CreateReplies(nonces [][]byte, midpoint mjd.Mjd, radius uint32, cert []byte
 
 	toBeSigned := signedResponseContext + string(signedReplyBytes)
 	sig := ed25519.Sign(privateKey, []byte(toBeSigned))
-	versionBytes := []byte{0x02, 0x00, 0x00, 0x80}
+	versionBytes := []byte{0x03, 0x00, 0x00, 0x80}
 
 	reply := map[uint32][]byte{
 		tagSREP: signedReplyBytes,
@@ -612,6 +614,7 @@ func VerifyReply(replyBytes, publicKey []byte, nonce [NonceSize]byte) (time mjd.
 	}
 
 	if midpoint.Cmp(minTime) < 0 || maxTime.Cmp(midpoint) < 0 {
+		fmt.Printf("midpoint: %v\n minTime: %v\n maxTime: %v\n", midpoint, minTime, maxTime)
 		return mjd.Mjd{}, 0, errors.New("protocol: timestamp out of range for delegation")
 	}
 
@@ -671,6 +674,27 @@ func DencapsulatePacket(packet []byte) ([]byte, error) {
 	}
 	return packet[12:], nil
 
+}
+
+// CreateReply crafts a reply for a single packet from the wire form
+func CreateReply(packet []byte, midpoint mjd.Mjd, radius uint32, cert []byte, privateKey []byte) ([]byte, error) {
+	innards, err := DencapsulatePacket(packet)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := Decode(innards)
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := getValue(parsed, tagNONC, "nonce")
+	if err != nil {
+		return nil, err
+	}
+	resps, err := CreateReplies([][]byte{nonce}, midpoint, radius, cert, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return EncapsulatePacket(Version, resps[0]), nil
 }
 
 func isCompatibleVersion(list []byte, version uint32) bool {

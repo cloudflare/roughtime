@@ -1,7 +1,9 @@
 package mjd
 
 import (
+	"math"
 	"testing"
+	"time"
 )
 
 func TestMJD(t *testing.T) {
@@ -10,6 +12,13 @@ func TestMJD(t *testing.T) {
 		t.Fatal("Day seems wrong")
 	}
 
+	nowMjd := Now()
+	nowTime := time.Now()
+	nowUnix := nowMjd.Unix()
+	drift := nowTime.Sub(nowUnix)
+	if math.Abs(float64(drift)) > 1_000_000 {
+		t.Fatalf("Times: %s and %s differ", nowTime, nowUnix)
+	}
 	example := Mjd{day: 0xadbeef, µs: 1337.00}
 	res := RoughtimeVal(example.RoughtimeEncoding())
 	if res.day != example.day {
