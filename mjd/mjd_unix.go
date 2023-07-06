@@ -1,3 +1,6 @@
+//go:build unix
+// +build unix
+
 package mjd
 
 import (
