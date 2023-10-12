@@ -5,7 +5,7 @@ This package implements a simple Roughtime client based on the
 
 For more information about Roughtime and tips for writing your own
 client or server, visit the [developer
-documentation](https://developers.cloudflare.com/roughtime/).
+documentation](https://developers.cloudflare.com/time-services/roughtime/).
 
 ## Note on status
 

@@ -38,7 +38,7 @@ the response may come from any one of their points of presence. The
 implementation is based on Google's [Go
 code](https://roughtime.googlesource.com/roughtime). This service is currently in beta. As
 such the root key is subject to change. It will be updated here and in the
-[developer docs](https://developers.cloudflare.com/roughtime/docs/usage/). You
+[developer docs](https://developers.cloudflare.com/time-services/roughtime/recipes/). You
 can also obtain it over DNS; see the docs for details.
 
 
