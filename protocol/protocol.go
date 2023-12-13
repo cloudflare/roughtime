@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License. */
 
-// Package protocol implements the core of the Roughtime protocol.
+// Modifications copyright 2023 Cloudflare, Inc.
+//
+// The code has been extended to support IETF-Roughtime.
 
-// Modified by Cloudflare 2020 to implement draft version 03 and succeeding.
+// Package protocol implements the core of the Roughtime protocol.
 package protocol
 
 import (
@@ -22,20 +24,18 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"sort"
+	"time"
 
-	"github.com/cloudflare/roughtime/mjd"
-	"github.com/cloudflare/roughtime/sha512trunc"
-	"golang.org/x/crypto/ed25519"
+	"crypto/ed25519"
 )
 
 const (
-	Version = 0x80000003
-	// NonceSize is the number of bytes in a nonce.
-	NonceSize = 32
+	ietfRoughtimeFrame = "ROUGHTIM"
+	maxNonceSize       = sha512.Size
+
 	// MinRequestSize is the minimum number of bytes in a request.
 	MinRequestSize = 1024
 
@@ -56,25 +56,20 @@ var (
 	// Various tags used in the Roughtime protocol.
 	tagCERT = makeTag("CERT")
 	tagDELE = makeTag("DELE")
-	tagDUT1 = makeTag("DUT1")
-	tagDTAI = makeTag("DTAI")
 	tagINDX = makeTag("INDX")
-	tagLEAP = makeTag("LEAP")
 	tagMAXT = makeTag("MAXT")
 	tagMIDP = makeTag("MIDP")
 	tagMINT = makeTag("MINT")
 	tagNONC = makeTag("NONC")
-	tagPAD  = makeTag("PAD\x00")
+	tagPAD  = makeTag("PAD\xff")
 	tagPATH = makeTag("PATH")
 	tagPUBK = makeTag("PUBK")
 	tagRADI = makeTag("RADI")
 	tagROOT = makeTag("ROOT")
 	tagSIG  = makeTag("SIG\x00")
 	tagSREP = makeTag("SREP")
-	tagVER  = makeTag("VER\x00")
-
-	// TagNonce names the bytestring containing the client's nonce.
-	TagNonce = tagNONC
+	tagVER  = makeTag("VER\xff")
+	tagZZZZ = makeTag("ZZZZ")
 )
 
 // tagsSlice is the type of an array of tags. It provides utility functions so
@@ -147,10 +142,10 @@ func Encode(msg map[uint32][]byte) ([]byte, error) {
 // Decode parses the output of encode back into a map of tags to bytestrings.
 func Decode(bytes []byte) (map[uint32][]byte, error) {
 	if len(bytes) < 4 {
-		return nil, errors.New("decode: message too short to be valid")
+		return nil, errDecode("message too short to be valid")
 	}
 	if len(bytes)%4 != 0 {
-		return nil, errors.New("decode: message is not a multiple of four bytes")
+		return nil, errDecode("message is not a multiple of four bytes")
 	}
 
 	numTags := uint64(binary.LittleEndian.Uint32(bytes))
@@ -162,7 +157,7 @@ func Decode(bytes []byte) (map[uint32][]byte, error) {
 	minLen := 4 * (1 + (numTags - 1) + numTags)
 
 	if uint64(len(bytes)) < minLen {
-		return nil, errors.New("decode: message too short to be valid")
+		return nil, errDecode("message too short to be valid")
 	}
 
 	offsets := bytes[4:]
@@ -170,16 +165,21 @@ func Decode(bytes []byte) (map[uint32][]byte, error) {
 	payloads := bytes[minLen:]
 
 	if len(payloads) > math.MaxInt32 {
-		return nil, errors.New("decode: message too large")
+		return nil, errDecode("message too large")
 	}
 	payloadLength := uint32(len(payloads))
 
 	currentOffset := uint32(0)
+	var lastTag uint32
 	ret := make(map[uint32][]byte)
 
 	for i := uint64(0); i < numTags; i++ {
 		tag := binary.LittleEndian.Uint32(tags)
 		tags = tags[4:]
+
+		if i > 0 && lastTag >= tag {
+			return nil, errDecode("tags out of order")
+		}
 
 		var nextOffset uint32
 		if i < numTags-1 {
@@ -190,22 +190,23 @@ func Decode(bytes []byte) (map[uint32][]byte, error) {
 		}
 
 		if nextOffset%4 != 0 {
-			return nil, errors.New("decode: payload length is not a multiple of four bytes")
+			return nil, errDecode("payload length is not a multiple of four bytes")
 		}
 
 		if nextOffset < currentOffset {
-			return nil, errors.New("decode: offsets out of order")
+			return nil, errDecode("offsets out of order")
 		}
 
 		length := nextOffset - currentOffset
 		if uint32(len(payloads)) < length {
-			return nil, errors.New("decode: message truncated")
+			return nil, errDecode("message truncated")
 		}
 
 		payload := payloads[:length]
 		payloads = payloads[length:]
 		ret[tag] = payload
 		currentOffset = nextOffset
+		lastTag = tag
 	}
 
 	return ret, nil
@@ -213,23 +214,79 @@ func Decode(bytes []byte) (map[uint32][]byte, error) {
 
 // messageOverhead returns the number of bytes needed for Encode to encode the
 // given number of tags.
-func messageOverhead(numTags int) int {
-	return 4 * 2 * numTags
+func messageOverhead(versionIETF bool, numTags int) int {
+	framing := 0
+	if versionIETF {
+		framing = 12 // "ROUGHTIM" + message length (4 bytes)
+	}
+	return framing + 4*2*numTags
 }
 
-// CalculateChainNonce calculates the nonce to be used in the next request in a
-// chain given a reply and a blinding factor.
-func CalculateChainNonce(prevReply, blind []byte) (nonce [NonceSize]byte) {
-	h := sha512trunc.New()
+// nonceSize returns the nonce length.
+func nonceSize(versionIETF bool) int {
+	if !versionIETF {
+		return 64
+	}
+	return 32
+}
+
+// CalculateChainNonce fills the `nonce` buffer with the nonce used in the next
+// request in a chain given a reply and a blinding factor. The length of the
+// buffer is expected to match the nonce length for the protocol version.
+func CalculateChainNonce(nonce, prevReply, blind []byte) {
+	var out [maxNonceSize]byte
+	h := sha512.New()
 	h.Write(prevReply)
-	prevReplyHash := h.Sum(nil)
+	h.Sum(out[:0])
 
 	h.Reset()
-	h.Write(prevReplyHash)
+	h.Write(out[:])
 	h.Write(blind)
-	h.Sum(nonce[:0])
+	h.Sum(out[:0])
+	copy(nonce, out[:])
+}
 
-	return nonce
+// encodeFramed adds IETF message framing to a message.
+func encodeFramed(versionIETF bool, msg []byte) []byte {
+	if versionIETF {
+		framedMsg := make([]byte, 0, 12+len(msg))
+		framedMsg = append(framedMsg, ietfRoughtimeFrame...)
+		framedMsg = binary.LittleEndian.AppendUint32(framedMsg, uint32(len(msg)))
+		framedMsg = append(framedMsg, msg...)
+		msg = framedMsg
+	}
+
+	return msg
+}
+
+// decodeFramed determines if the requester is a legacy client
+// (Google-Roughtime) or supports the IETF version. In the later case, it
+// removes the IETF message framing.
+func decodeFramed(req []byte) ([]byte, bool, error) {
+	// In the IETF version of Roughtime, the first eight bytes of the datagram are
+	// equal to "ROUGHTIM". In Google-Roughtime, the first four bytes encode the
+	// number of tags. This is therefore a good distinguisher as long as "ROUG",
+	// interpreted as a little-endian uint32, is not a valid number of tags.
+	versionIETF := len(req) >= 8 && bytes.Equal(req[:8], []byte(ietfRoughtimeFrame))
+
+	if versionIETF {
+		if len(req) < 8 {
+			return nil, false, errDecode("request is too short to encode message frame")
+		}
+		req = req[8:]
+
+		if len(req) < 4 {
+			return nil, false, errDecode("request is too short to encode the message length")
+		}
+		roughtimeMessageLen := binary.LittleEndian.Uint32(req[:4])
+		req = req[4:]
+
+		if len(req) != int(roughtimeMessageLen) {
+			return nil, false, errDecode("message has unexpected length")
+		}
+	}
+
+	return req, versionIETF, nil
 }
 
 // CreateRequest creates a Roughtime request given an entropy source and the
@@ -237,31 +294,63 @@ func CalculateChainNonce(prevReply, blind []byte) (nonce [NonceSize]byte) {
 // chain, prevReply can be empty. It returns the nonce (needed to verify the
 // reply), the blind (needed to prove correct chaining to an external party)
 // and the request itself.
-func CreateRequest(rand io.Reader, prevReply []byte) (nonce, blind [NonceSize]byte, request []byte, err error) {
-	versionBytes := []byte{0x03, 0x00, 0x00, 0x80}
-	if _, err := io.ReadFull(rand, blind[:]); err != nil {
-		return nonce, blind, nil, err
-	}
-
-	nonce = CalculateChainNonce(prevReply, blind[:])
-
-	padding := make([]byte, MinRequestSize-messageOverhead(3)-len(nonce)-len(versionBytes))
-	msg, err := Encode(map[uint32][]byte{
-		tagNONC: nonce[:],
-		tagPAD:  padding,
-		tagVER:  versionBytes,
-	})
+func CreateRequest(versionPreference []Version, rand io.Reader, prevReply []byte) (nonce, blind []byte, request []byte, err error) {
+	advertisedVersions, versionIETF, err := advertisedVersionsFromPreference(versionPreference)
 	if err != nil {
-		return nonce, blind, nil, err
+		return nil, nil, nil, err
+	}
+	nonceSize := nonceSize(versionIETF)
+	nonce = make([]byte, nonceSize)
+	blind = make([]byte, nonceSize)
+	if _, err := io.ReadFull(rand, blind); err != nil {
+		return nil, nil, nil, err
 	}
 
-	return nonce, blind, msg, nil
+	CalculateChainNonce(nonce, prevReply, blind)
+
+	// Construct the packet.
+	packet := make(map[uint32][]byte)
+	valuesLen := 0
+	numTags := 0
+
+	// NONC
+	packet[tagNONC] = nonce
+	valuesLen += len(nonce)
+	numTags += 1
+
+	// VER
+	if versionIETF {
+		encoded := make([]byte, 0, len(advertisedVersions)*4)
+		for _, ver := range advertisedVersions {
+			encoded = binary.LittleEndian.AppendUint32(encoded, uint32(ver))
+		}
+		packet[tagVER] = encoded
+		valuesLen += len(encoded)
+		numTags += 1
+	}
+
+	// Padding (PAD in Google-Roughtime or ZZZZ in the IETF version)
+	var paddingTag uint32
+	if versionIETF {
+		paddingTag = tagZZZZ
+	} else {
+		paddingTag = tagPAD
+	}
+	padding := make([]byte, MinRequestSize-messageOverhead(versionIETF, numTags+1)-valuesLen)
+	packet[paddingTag] = padding
+
+	msg, err := Encode(packet)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return nonce, blind, encodeFramed(versionIETF, msg), nil
 }
 
 // tree represents a Merkle tree of nonces. Each element of values is a layer
 // in the tree, with the widest layer first.
 type tree struct {
-	values [][][NonceSize]byte
+	values [][][maxNonceSize]byte
 }
 
 var (
@@ -270,8 +359,8 @@ var (
 )
 
 // hashLeaf hashes an nonce to form the leaf of the Merkle tree.
-func hashLeaf(out *[sha512.Size256]byte, in []byte) {
-	h := sha512trunc.New()
+func hashLeaf(out *[maxNonceSize]byte, in []byte) {
+	h := sha512.New()
 	h.Write(hashLeafTweak)
 	h.Write(in)
 	h.Sum(out[:0])
@@ -279,8 +368,8 @@ func hashLeaf(out *[sha512.Size256]byte, in []byte) {
 
 // hashNode hashes two child elements of the Merkle tree to produce an interior
 // node.
-func hashNode(out *[sha512.Size256]byte, left, right []byte) {
-	h := sha512trunc.New()
+func hashNode(out *[maxNonceSize]byte, left, right []byte) {
+	h := sha512.New()
 	h.Write(hashNodeTweak)
 	h.Write(left)
 	h.Write(right)
@@ -288,7 +377,7 @@ func hashNode(out *[sha512.Size256]byte, left, right []byte) {
 }
 
 // newTree creates a Merkle tree given one or more nonces.
-func newTree(nonces [][]byte) *tree {
+func newTree(nonceSize int, nonces [][]byte) *tree {
 	if len(nonces) == 0 {
 		panic("newTree: passed empty slice")
 	}
@@ -301,12 +390,12 @@ func newTree(nonces [][]byte) *tree {
 	}
 
 	ret := &tree{
-		values: make([][][NonceSize]byte, 0, levels),
+		values: make([][][maxNonceSize]byte, 0, levels),
 	}
 
-	leaves := make([][NonceSize]byte, ((len(nonces)+1)/2)*2)
+	leaves := make([][maxNonceSize]byte, ((len(nonces)+1)/2)*2)
 	for i, nonce := range nonces {
-		var leaf [NonceSize]byte
+		var leaf [maxNonceSize]byte
 		hashLeaf(&leaf, nonce)
 		leaves[i] = leaf
 	}
@@ -323,9 +412,9 @@ func newTree(nonces [][]byte) *tree {
 		if width%2 == 1 {
 			width++
 		}
-		level := make([][NonceSize]byte, width)
+		level := make([][maxNonceSize]byte, width)
 		for j := 0; j < len(lastLevel)/2; j++ {
-			hashNode(&level[j], lastLevel[j*2][:], lastLevel[j*2+1][:])
+			hashNode(&level[j], lastLevel[j*2][:nonceSize], lastLevel[j*2+1][:nonceSize])
 		}
 		// Fill the extra node with an existing node, to simplify
 		// analysis that we are not inadvertently signing other
@@ -340,7 +429,7 @@ func newTree(nonces [][]byte) *tree {
 }
 
 // Root returns the root value of t.
-func (t *tree) Root() *[NonceSize]byte {
+func (t *tree) Root() *[maxNonceSize]byte {
 	return &t.values[len(t.values)-1][0]
 }
 
@@ -367,26 +456,99 @@ func (t *tree) Path(index int) (path [][]byte) {
 	return path
 }
 
+// HandleRequest resolves the supported versions indicated by the client and
+// parses the values required to produce a response.
+func HandleRequest(bytes []byte) (nonce []byte, vers []Version, err error) {
+	if len(bytes) < MinRequestSize {
+		return nil, nil, errRequestLen
+	}
+
+	msg, versionIETF, err := decodeFramed(bytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	packet, err := Decode(msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nonce, ok := packet[tagNONC]
+	if !ok || len(nonce) != nonceSize(versionIETF) {
+		return nil, nil, errNonceLen
+	}
+
+	if versionIETF {
+		encoded, ok := packet[tagVER]
+		if !ok {
+			return nil, nil, errMissingVersion
+		}
+		for len(encoded) > 0 {
+			if len(encoded) < 4 {
+				return nil, nil, errDecode("malformed version list")
+			}
+
+			ver := Version(binary.LittleEndian.Uint32(encoded[:4]))
+			if ver.isSupported() {
+				// De-duplicate any repeated version.
+				ok := true
+				for i := range vers {
+					if vers[i] == ver {
+						ok = false
+						break
+					}
+				}
+				if ok {
+					vers = append(vers, ver)
+				}
+			}
+			encoded = encoded[4:]
+		}
+	} else {
+		vers = []Version{VersionGoogle}
+	}
+
+	return nonce, vers, nil
+}
+
 // CreateReplies signs, using privateKey, a batch of nonces along with the
-// given time and radius in microseconds. It returns one reply for each nonce
-// using that signature and includes cert in each.
-func CreateReplies(nonces [][]byte, midpoint mjd.Mjd, radius uint32, cert []byte, privateKey []byte) ([][]byte, error) {
+// given time and radius. It returns one reply for each nonce using that
+// signature and includes cert in each.
+//
+// The same version is indicated in each reply. It's the callers responsibility
+// to ensure that each client supports this version.
+func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time.Duration, cert *Certificate, privateKey []byte) ([][]byte, error) {
+	versionIETF := ver != VersionGoogle
+	nonceSize := nonceSize(versionIETF)
+
 	if len(nonces) == 0 {
 		return nil, nil
 	}
 
-	tree := newTree(nonces)
+	tree := newTree(nonceSize, nonces)
+
+	// Convert the midpoint and radius to their Roughtime representation.
+	var midPointUint64 uint64
+	var radiusUint32 uint32
+	if versionIETF {
+		midPointUint64 = uint64(midpoint.Unix())
+		radiusUint32 = uint32(radius.Seconds())
+	} else {
+		midPointUint64 = uint64(midpoint.UnixMicro())
+		radiusUint32 = uint32(radius.Microseconds())
+	}
 
 	var midpointBytes [8]byte
-	binary.LittleEndian.PutUint64(midpointBytes[:], midpoint.RoughtimeEncoding())
+	binary.LittleEndian.PutUint64(midpointBytes[:], midPointUint64)
 	var radiusBytes [4]byte
-	binary.LittleEndian.PutUint32(radiusBytes[:], radius)
+	binary.LittleEndian.PutUint32(radiusBytes[:], radiusUint32)
 
 	signedReply := map[uint32][]byte{
 		tagMIDP: midpointBytes[:],
 		tagRADI: radiusBytes[:],
-		tagROOT: tree.Root()[:],
+		tagROOT: tree.Root()[:nonceSize],
 	}
+
 	signedReplyBytes, err := Encode(signedReply)
 	if err != nil {
 		return nil, err
@@ -394,13 +556,17 @@ func CreateReplies(nonces [][]byte, midpoint mjd.Mjd, radius uint32, cert []byte
 
 	toBeSigned := signedResponseContext + string(signedReplyBytes)
 	sig := ed25519.Sign(privateKey, []byte(toBeSigned))
-	versionBytes := []byte{0x03, 0x00, 0x00, 0x80}
 
 	reply := map[uint32][]byte{
 		tagSREP: signedReplyBytes,
 		tagSIG:  sig,
-		tagCERT: cert,
-		tagVER:  versionBytes,
+		tagCERT: cert.BytesForVersion(ver),
+	}
+
+	if versionIETF {
+		encoded := make([]byte, 0, 4)
+		encoded = binary.LittleEndian.AppendUint32(encoded, uint32(ver))
+		reply[tagVER] = encoded
 	}
 
 	replies := make([][]byte, 0, len(nonces))
@@ -411,9 +577,9 @@ func CreateReplies(nonces [][]byte, midpoint mjd.Mjd, radius uint32, cert []byte
 		reply[tagINDX] = indexBytes[:]
 
 		path := tree.Path(i)
-		pathBytes := make([]byte, 0, NonceSize*len(path))
+		pathBytes := make([]byte, 0, nonceSize*len(path))
 		for _, pathStep := range path {
-			pathBytes = append(pathBytes, pathStep...)
+			pathBytes = append(pathBytes, pathStep[:nonceSize]...)
 		}
 		reply[tagPATH] = pathBytes
 
@@ -422,43 +588,88 @@ func CreateReplies(nonces [][]byte, midpoint mjd.Mjd, radius uint32, cert []byte
 			return nil, err
 		}
 
-		replies = append(replies, replyBytes)
+		replies = append(replies, encodeFramed(versionIETF, replyBytes))
 	}
 
 	return replies, nil
 }
 
-// CreateCertificate returns a signed certificate, using rootPrivateKey,
+type Certificate struct {
+	// googleCert is the certificate we send to legacy clients
+	// (Google-Roughtime). The MINT and MAXT fields encode timestamps in
+	// microseconds.
+	googleBytes []byte
+	bytes       []byte
+}
+
+// BytesForVersion returns a serialized certificate compatible with the given
+// version. Legacy clients (Google-Roughtime) expect a non-standard encoding of
+// the MINT and MAXT fields.
+func (cert *Certificate) BytesForVersion(ver Version) []byte {
+	switch ver {
+	case VersionGoogle:
+		return cert.googleBytes
+	default:
+		return cert.bytes
+	}
+}
+
+// NewCertificate returns a signed certificate, using rootPrivateKey,
 // delegating authority for the given timestamp to publicKey.
-func CreateCertificate(minTime, maxTime mjd.Mjd, publicKey, rootPrivateKey []byte) (certBytes []byte, err error) {
-	if maxTime.Cmp(minTime) < 0 {
+func NewCertificate(minTime, maxTime time.Time, publicKey, rootPrivateKey []byte) (cert *Certificate, err error) {
+	if maxTime.Before(minTime) {
 		return nil, errors.New("protocol: maxTime < minTime")
 	}
 
-	var minTimeBytes, maxTimeBytes [8]byte
-	binary.LittleEndian.PutUint64(minTimeBytes[:], minTime.RoughtimeEncoding())
-	binary.LittleEndian.PutUint64(maxTimeBytes[:], maxTime.RoughtimeEncoding())
+	certs := make([][]byte, 2)
+	for i, t := range []struct {
+		minTime uint64
+		maxTime uint64
+	}{
+		// Legacy (Google-Roughtime)
+		{
+			minTime: uint64(minTime.UnixMicro()),
+			maxTime: uint64(maxTime.UnixMicro()),
+		},
+		// IETF
+		{
+			minTime: uint64(minTime.Unix()),
+			maxTime: uint64(maxTime.Unix()),
+		},
+	} {
+		var minTimeBytes, maxTimeBytes [8]byte
+		binary.LittleEndian.PutUint64(minTimeBytes[:], t.minTime)
+		binary.LittleEndian.PutUint64(maxTimeBytes[:], t.maxTime)
 
-	signed := map[uint32][]byte{
-		tagPUBK: publicKey,
-		tagMINT: minTimeBytes[:],
-		tagMAXT: maxTimeBytes[:],
+		signed := map[uint32][]byte{
+			tagPUBK: publicKey,
+			tagMINT: minTimeBytes[:],
+			tagMAXT: maxTimeBytes[:],
+		}
+
+		signedBytes, err := Encode(signed)
+		if err != nil {
+			return nil, err
+		}
+
+		toBeSigned := certificateContext + string(signedBytes)
+		sig := ed25519.Sign(rootPrivateKey, []byte(toBeSigned))
+
+		cert := map[uint32][]byte{
+			tagSIG:  sig,
+			tagDELE: signedBytes,
+		}
+
+		certs[i], err = Encode(cert)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	signedBytes, err := Encode(signed)
-	if err != nil {
-		return nil, err
-	}
-
-	toBeSigned := certificateContext + string(signedBytes)
-	sig := ed25519.Sign(rootPrivateKey, []byte(toBeSigned))
-
-	cert := map[uint32][]byte{
-		tagSIG:  sig,
-		tagDELE: signedBytes,
-	}
-
-	return Encode(cert)
+	return &Certificate{
+		googleBytes: certs[0],
+		bytes:       certs[1],
+	}, nil
 }
 
 func getValue(msg map[uint32][]byte, tag uint32, name string) (value []byte, err error) {
@@ -496,14 +707,6 @@ func getUint64(msg map[uint32][]byte, tag uint32, name string) (result uint64, e
 	return binary.LittleEndian.Uint64(valueBytes), nil
 }
 
-func getTimestamp(msg map[uint32][]byte, tag uint32, name string) (result mjd.Mjd, err error) {
-	timestamp, err := getUint64(msg, tag, name)
-	if err != nil {
-		return mjd.Mjd{}, err
-	}
-	return mjd.RoughtimeVal(timestamp), nil
-}
-
 func getSubmessage(msg map[uint32][]byte, tag uint32, name string) (result map[uint32][]byte, err error) {
 	valueBytes, err := getValue(msg, tag, name)
 	if err != nil {
@@ -521,191 +724,168 @@ func getSubmessage(msg map[uint32][]byte, tag uint32, name string) (result map[u
 // VerifyReply parses the Roughtime reply in replyBytes, authenticates it using
 // publicKey and verifies that nonce is included in it. It returns the included
 // timestamp and radius.
-func VerifyReply(replyBytes, publicKey []byte, nonce [NonceSize]byte) (time mjd.Mjd, radius uint32, err error) {
-	reply, err := Decode(replyBytes)
+func VerifyReply(versionPreference []Version, replyBytes, publicKey []byte, nonce []byte) (midp time.Time, radi time.Duration, err error) {
+	advertisedVersions, versionIETF, err := advertisedVersionsFromPreference(versionPreference)
 	if err != nil {
-		return mjd.Mjd{}, 0, errors.New("protocol: failed to parse top-level reply: " + err.Error())
+		return midp, radi, err
 	}
-	versionBytes, err := getValue(reply, tagVER, "version")
+	nonceSize := nonceSize(versionIETF)
+
+	unframedReply, _, err := decodeFramed(replyBytes)
 	if err != nil {
-		return mjd.Mjd{}, 0, errors.New("protocol: failure to get version: " + err.Error())
+		return midp, radi, err
 	}
 
-	if !isCompatibleVersion(versionBytes, Version) {
-		return mjd.Mjd{}, 0, errors.New("protocol: incompatible versions")
+	reply, err := Decode(unframedReply)
+	if err != nil {
+		return midp, radi, errors.New("protocol: failed to parse top-level reply: " + err.Error())
 	}
+
+	// Make sure the version selected by the server matches one that we advertised.
+	var responseVer Version
+	if versionIETF {
+		encoded, ok := reply[tagVER]
+		if !ok {
+			return midp, radi, errMissingVersion
+		}
+		if len(encoded) != 4 {
+			return midp, radi, errDecode("malformed version")
+		}
+
+		responseVer = Version(binary.LittleEndian.Uint32(encoded[:]))
+	} else {
+		responseVer = VersionGoogle
+	}
+	versionOK := false
+	for _, ver := range advertisedVersions {
+		if responseVer == ver {
+			versionOK = true
+			break
+		}
+	}
+	if !versionOK {
+		return midp, radi, errUnsupportedVersion([]Version{responseVer})
+	}
+
 	cert, err := getSubmessage(reply, tagCERT, "certificate")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	signatureBytes, err := getFixedLength(cert, tagSIG, "signature", ed25519.SignatureSize)
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	delegationBytes, err := getValue(cert, tagDELE, "delegation")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	if !ed25519.Verify(publicKey, []byte(certificateContext+string(delegationBytes)), signatureBytes) {
-		return mjd.Mjd{}, 0, errors.New("protocol: invalid delegation signature")
+		return midp, radi, errors.New("protocol: invalid delegation signature")
 	}
 
 	delegation, err := Decode(delegationBytes)
 	if err != nil {
-		return mjd.Mjd{}, 0, errors.New("protocol: failed to parse delegation: " + err.Error())
+		return midp, radi, errors.New("protocol: failed to parse delegation: " + err.Error())
 	}
 
-	minTime, err := getTimestamp(delegation, tagMINT, "minimum time")
+	minTime, err := getUint64(delegation, tagMINT, "minimum time")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
-	maxTime, err := getTimestamp(delegation, tagMAXT, "maximum time")
+	maxTime, err := getUint64(delegation, tagMAXT, "maximum time")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	delegatedPublicKey, err := getFixedLength(delegation, tagPUBK, "public key", ed25519.PublicKeySize)
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	responseSigBytes, err := getFixedLength(reply, tagSIG, "signature", ed25519.SignatureSize)
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	signedResponseBytes, ok := reply[tagSREP]
 	if !ok {
-		return mjd.Mjd{}, 0, errors.New("protocol: response is missing signed portion")
+		return midp, radi, errors.New("protocol: response is missing signed portion")
 	}
 
 	if !ed25519.Verify(delegatedPublicKey, []byte(signedResponseContext+string(signedResponseBytes)), responseSigBytes) {
-		return mjd.Mjd{}, 0, errors.New("protocol: invalid response signature")
+		return midp, radi, errors.New("protocol: invalid response signature")
 	}
 
 	signedResponse, err := Decode(signedResponseBytes)
 	if err != nil {
-		return mjd.Mjd{}, 0, errors.New("protocol: failed to parse signed response: " + err.Error())
+		return midp, radi, errors.New("protocol: failed to parse signed response: " + err.Error())
 	}
 
-	root, err := getFixedLength(signedResponse, tagROOT, "root", 32)
+	root, err := getFixedLength(signedResponse, tagROOT, "root", nonceSize)
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
-	midpoint, err := getTimestamp(signedResponse, tagMIDP, "midpoint")
+	midpoint, err := getUint64(signedResponse, tagMIDP, "midpoint")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
-	radius, err = getUint32(signedResponse, tagRADI, "radius")
+	radius, err := getUint32(signedResponse, tagRADI, "radius")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
-	// We now need to do some arithmetic.
-
-	if maxTime.Cmp(minTime) < 0 {
-		return mjd.Mjd{}, 0, errors.New("protocol: invalid delegation range")
+	if maxTime < minTime {
+		return midp, radi, errors.New("protocol: invalid delegation range")
 	}
 
-	if midpoint.Cmp(minTime) < 0 || maxTime.Cmp(midpoint) < 0 {
-		fmt.Printf("midpoint: %v\n minTime: %v\n maxTime: %v\n", midpoint, minTime, maxTime)
-		return mjd.Mjd{}, 0, errors.New("protocol: timestamp out of range for delegation")
+	if midpoint < minTime || maxTime < midpoint {
+		return midp, radi, errors.New("protocol: timestamp out of range for delegation")
 	}
 
 	index, err := getUint32(reply, tagINDX, "index")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
 
 	path, err := getValue(reply, tagPATH, "path")
 	if err != nil {
-		return mjd.Mjd{}, 0, err
+		return midp, radi, err
 	}
-	if len(path)%32 != 0 {
-		return mjd.Mjd{}, 0, errors.New("protocol: path is not a multiple of 32")
+	if len(path)%nonceSize != 0 {
+		return midp, radi, errors.New("protocol: path is not a multiple of the hash size")
 	}
 
-	var hash [sha512.Size256]byte
-	hashLeaf(&hash, nonce[:])
+	var hash [maxNonceSize]byte
+	hashLeaf(&hash, nonce)
 
 	for len(path) > 0 {
 		pathElementIsRight := index&1 == 0
 		if pathElementIsRight {
-			hashNode(&hash, hash[:32], path[:32])
+			hashNode(&hash, hash[:nonceSize], path[:nonceSize])
 		} else {
-			hashNode(&hash, path[:32], hash[:32])
+			hashNode(&hash, path[:nonceSize], hash[:nonceSize])
 		}
 
 		index >>= 1
-		path = path[32:]
+		path = path[nonceSize:]
 	}
 
-	if !bytes.Equal(hash[:32], root) {
-		return mjd.Mjd{}, 0, errors.New("protocol: calculated tree root doesn't match signed root")
+	if !bytes.Equal(hash[:nonceSize], root) {
+		return midp, radi, errors.New("protocol: calculated tree root doesn't match signed root")
 	}
 
-	return midpoint, radius, nil
-}
-
-// EncapsulatePacket creates a UDP/TCP payload containing a roughtime message.
-func EncapsulatePacket(version uint32, message []byte) []byte {
-	length := len(message)
-	ret := make([]byte, length+12)
-	copy(ret, "ROUGHTIM")
-	binary.LittleEndian.PutUint32(ret[8:], uint32(length))
-	copy(ret[12:], message)
-	return ret
-}
-
-// DencapsulatePacket removes the encapsulation layer.
-func DencapsulatePacket(packet []byte) ([]byte, error) {
-	if bytes.Compare(packet[0:8], []byte("ROUGHTIM")) != 0 {
-		return nil, errors.New("Header invalid")
+	if versionIETF {
+		midp = time.Unix(int64(midpoint), 0)
+		radi = time.Duration(radius) * time.Second
+	} else {
+		midp = time.UnixMicro(int64(midpoint))
+		radi = time.Duration(radius) * time.Microsecond
 	}
-	length := int(binary.LittleEndian.Uint32(packet[8:12]))
-	if length != len(packet)-12 {
-		return nil, errors.New("Mangled length!")
-	}
-	return packet[12:], nil
-
-}
-
-// CreateReply crafts a reply for a single packet from the wire form
-func CreateReply(packet []byte, midpoint mjd.Mjd, radius uint32, cert []byte, privateKey []byte) ([]byte, error) {
-	innards, err := DencapsulatePacket(packet)
-	if err != nil {
-		return nil, err
-	}
-	parsed, err := Decode(innards)
-	if err != nil {
-		return nil, err
-	}
-	nonce, err := getValue(parsed, tagNONC, "nonce")
-	if err != nil {
-		return nil, err
-	}
-	resps, err := CreateReplies([][]byte{nonce}, midpoint, radius, cert, privateKey)
-	if err != nil {
-		return nil, err
-	}
-	return EncapsulatePacket(Version, resps[0]), nil
-}
-
-func isCompatibleVersion(list []byte, version uint32) bool {
-	if len(list)%4 != 0 {
-		return false
-	}
-
-	for ptr := 0; ptr < len(list); ptr += 4 {
-		if binary.LittleEndian.Uint32(list[ptr:ptr+4]) == version {
-			return true
-		}
-	}
-	return false
+	return
 }

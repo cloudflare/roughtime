@@ -24,10 +24,11 @@ import (
 	"testing"
 
 	"github.com/cloudflare/roughtime"
+	"github.com/cloudflare/roughtime/client"
 )
 
 func TestMain(t *testing.T) {
-	fromJSON, _, err := roughtime.LoadConfig("../" + inputJSONFile)
+	fromJSON, _, err := client.LoadConfig("../" + inputJSONFile)
 	if err != nil {
 		t.Errorf("load config error: %v", err)
 	} else {
