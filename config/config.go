@@ -11,6 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License. */
+
+// Modifications copyright 2023 Cloudflare, Inc. This file has been modified to
+// allow the server config to indicate whether it supports IETF-Roughtime.
+
 // Package config contains JSON structs for encoding information about
 // Roughtime servers.
 package config
@@ -24,6 +28,10 @@ type ServersJSON struct {
 // Server represents a Roughtime server in a JSON configuration.
 type Server struct {
 	Name string `json:"name"`
+	// Version indicates whether the server is known to support the IETF
+	// version ("IETF-Roughtime") or only the legacy version
+	// ("Google-Roughtime"). If unspecified, then legacy should be assumed.
+	Version string `json:"version"`
 	// PublicKeyType specifies the type of the public key contained in
 	// |PublicKey|. Normally this will be "ed25519" but implementations
 	// should ignore entries with unknown key types.

@@ -24,7 +24,7 @@ import (
 	"log"
 	"os"
 
-	roughtime "github.com/cloudflare/roughtime"
+	"github.com/cloudflare/roughtime/client"
 )
 
 const (
@@ -33,8 +33,8 @@ const (
 )
 
 func main() {
-	roughtime.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
-	servers, skipped, err := roughtime.LoadConfig(inputJSONFile)
+	client.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+	servers, skipped, err := client.LoadConfig(inputJSONFile)
 	if err != nil {
 		panic(err)
 	}

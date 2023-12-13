@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"golang.org/x/crypto/ed25519"
+	"crypto/ed25519"
 )
 
 func main() {
