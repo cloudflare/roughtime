@@ -79,24 +79,23 @@ server was announced on the mailing list, archived
 The announcement includes the server details.
 
 
-## time.0xt.ca
+## time.txryan.com
 
-[time.0xt.ca](https://time.0xt.ca) runs on a stratum 2 NTP server hosted in
-Toronto, Canada. 
+[time.txryan.com](https://time.txryan.com) runs on a stratum 2 NTP server.
 
 The clock is synchronized with authenticated NTP connections to NIST (National
 Institute of Standards and Technology), and the Canadian equivalent, NRC
 (National Research Council Canada), which are both directly connected to atomic
 sources (caesium fountains and/or hydrogen masers). There are also multiple
 unauthenticated stratum 1 upstreams, maintained by GNSS (GPS + Galileo +
-GLONASS). The accuracy is typically within +/- 30 microseconds.
+GLONASS). The accuracy is typically within +/- 50 microseconds.
 
-The Roughtime service is accessible at `time.0xt.ca:2002`. The public key is
-available on time.0xt.ca's [website](https://time.0xt.ca), or through a DNS TXT
-lookup.
+The Roughtime service is accessible at `time.txryan.com:2002`. The public key is
+available on time.txryan.com's [website](https://time.txryan.com), or through a
+DNS TXT lookup.
 
 ```
-dig TXT time.0xt.ca +short
+dig TXT time.txryan.com +short
 ```
 
 The Roughtime service is powered by Google's [Go reference
