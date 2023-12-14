@@ -56,13 +56,13 @@
       ]
     },
     {
-      "name": "time.0xt.ca",
+      "name": "time.txryan.com",
       "publicKeyType": "ed25519",
       "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
       "addresses": [
         {
           "protocol": "udp",
-          "address": "time.0xt.ca:2002"
+          "address": "time.txryan.com:2002"
         }
       ]
     }
