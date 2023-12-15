@@ -1,7 +1,9 @@
 # Roughtime
 
-This package implements a simple Roughtime client based on the
-[IETF draft](https://datatracker.ietf.org/doc/draft-ietf-ntp-roughtime/)
+A fork of [Google's Roughtime
+protocol](https://roughtime.googlesource.com/roughtime/) and utilities for
+building Roughtime clients. This repository also implements the [IETF
+version](https://datatracker.ietf.org/doc/draft-ietf-ntp-roughtime/).
 
 For more information about Roughtime and tips for writing your own
 client or server, visit the [developer
@@ -9,10 +11,10 @@ documentation](https://developers.cloudflare.com/time-services/roughtime/).
 
 ## Note on status
 
-Roughtime is now experimental and will undergo backwards incompatible
-changes as it goes through the IETF process. This library will
-likewise undergo backwards incompatible changes. There are already
-substantial changes from Google Roughtime that have forced interface changes.
+This repository currently supports draft-ietf-ntp-roughtime-08. Backwards
+compatibility with this version is not guaranteed; users should expect breaking
+changes as the IETF process continues. Likewise, the API should be regarded as
+unstable.
 
 If you want to use this code and the protocol please join the NTP WG
 [mailing list](https://www.ietf.org/mailman/listinfo/ntp) so that you are
