@@ -2,9 +2,7 @@
 // source: ecosystem.json
 package roughtime
 
-import (
-	"github.com/cloudflare/roughtime/config"
-)
+import "github.com/cloudflare/roughtime/config"
 
 var Ecosystem = []config.Server{
 	{

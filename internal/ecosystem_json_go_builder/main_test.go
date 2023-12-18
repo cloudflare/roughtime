@@ -28,7 +28,7 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	fromJSON, _, err := client.LoadConfig("../" + inputJSONFile)
+	fromJSON, _, err := client.LoadConfig("../../" + inputJSONFile)
 	if err != nil {
 		t.Errorf("load config error: %v", err)
 	} else {
