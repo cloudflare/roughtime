@@ -1,13 +1,12 @@
 package main
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"flag"
-	"io/ioutil"
 	"log"
-
-	"crypto/ed25519"
+	"os"
 )
 
 func main() {
@@ -24,14 +23,12 @@ func main() {
 
 	privEnc := base64.StdEncoding.EncodeToString(priv)
 
-	err = ioutil.WriteFile(*pubFile, []byte(pubEnc), 0644)
-	if err != nil {
-		log.Fatal("can't write public key")
+	if err := os.WriteFile(*pubFile, []byte(pubEnc), 0o644); err != nil {
+		log.Fatal("Can't write public key")
 	}
 
-	err = ioutil.WriteFile(*privFile, []byte(privEnc), 0600)
-	if err != nil {
-		log.Fatal("can't write private key")
+	if err := os.WriteFile(*privFile, []byte(privEnc), 0o600); err != nil {
+		log.Fatal("Can't write private key")
 	}
 
 }

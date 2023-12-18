@@ -27,28 +27,27 @@ import (
 	"github.com/cloudflare/roughtime/config"
 )
 
-var (
+const (
 	// Build info.
 	Version   = "dev"
-	GoVersion = runtime.Version()
 	BuildTime = ""
-
-	// Command-line arguments.
-	getVersion = flag.Bool("version", false, "Print the version and exit.")
-	configFile = flag.String("config", "", "A list of Roughtime servers.")
-	pingAddr   = flag.String("ping", "", "Send a UDP request, e.g., localhost:2002.")
-	pingPubKey = flag.String("pubkey", "", "The Ed25519 public key of the address to ping.")
-	attempts   = flag.Int("attempts", client.DefaultQueryAttempts, "Number of times to try each server.")
-	timeout    = flag.Duration("timeout", client.DefaultQueryTimeout, "Amount of time to wait for each request.")
 )
 
 func main() {
+	// Command-line arguments.
+	getVersion := flag.Bool("version", false, "Print the version and exit.")
+	configFile := flag.String("config", "", "A list of Roughtime servers.")
+	pingAddr := flag.String("ping", "", "Send a UDP request, e.g., localhost:2002.")
+	pingPubKey := flag.String("pubkey", "", "The Ed25519 public key of the address to ping.")
+	attempts := flag.Int("attempts", client.DefaultQueryAttempts, "Number of times to try each server.")
+	timeout := flag.Duration("timeout", client.DefaultQueryTimeout, "Amount of time to wait for each request.")
+
 	flag.Parse()
 	logger := log.New(os.Stdout, "", 0)
 	client.SetLogger(logger)
 
 	if *getVersion {
-		logger.Printf("getroughtime %s (%s) built %s\n", Version, GoVersion, BuildTime)
+		logger.Printf("getroughtime %s (%s) built %s\n", Version, runtime.Version(), BuildTime)
 		os.Exit(0)
 	}
 
@@ -62,19 +61,19 @@ func main() {
 		if err != nil {
 			logger.Fatal(err)
 		}
-		logger.Printf("delta: %v", delta.Truncate(time.Millisecond))
+		logger.Printf("Delta: %v", delta.Truncate(time.Millisecond))
 		os.Exit(0)
 	}
 
 	if *pingAddr != "" {
 		if *pingPubKey == "" {
-			logger.Fatal("ping: missing -pubkey")
+			logger.Fatal("Ping: missing -pubkey")
 		}
 		pk, err := base64.StdEncoding.DecodeString(*pingPubKey)
 		if err != nil {
-			logger.Fatalf("pubkey decode error: %s\n", err)
+			logger.Fatalf("Public key decode error: %s\n", err)
 		} else if len(pk) != 32 {
-			logger.Fatalf("pubkey decode error: incorrect length")
+			logger.Fatalf("Public key decode error: incorrect length")
 		}
 
 		server := &config.Server{
@@ -93,11 +92,11 @@ func main() {
 		rt, err := client.Get(server, *attempts, *timeout, nil)
 		delay := time.Since(start).Truncate(time.Millisecond)
 		if err != nil {
-			logger.Fatalf("ping error: %s\n", err)
+			logger.Fatalf("Ping error: %s\n", err)
 		}
-		logger.Printf("ping response: %s (in %s)\n", rt, delay)
+		logger.Printf("Ping response: %s (in %s)\n", rt, delay)
 		os.Exit(0)
 	}
 
-	logger.Fatal("either provide a configuration via -config or an address via -ping")
+	logger.Fatal("Either provide a configuration via -config or an address via -ping")
 }

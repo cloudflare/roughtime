@@ -14,9 +14,7 @@
 
 package protocol
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Version indicates the version of the Roughtime protocol in use.
 type Version uint32

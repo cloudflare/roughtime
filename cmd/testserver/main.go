@@ -16,6 +16,7 @@
 package main
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
@@ -26,21 +27,17 @@ import (
 	"time"
 
 	"github.com/cloudflare/roughtime/protocol"
-
-	"crypto/ed25519"
 )
 
-var (
-	// Command line parameters
-	addr           = flag.String("addr", "127.0.0.1:2002", "address to listen on")
-	rootKeySeedHex = flag.String("root-key", "", "hex-encoded root key seed (random 32 bytes)")
-
-	// Roughtime radius to use for responses
-	radius = time.Duration(1) * time.Second
-)
+// Roughtime radius to use for responses
+const radius = time.Second
 
 func main() {
 	var (
+		// Command line parameters
+		addr           = flag.String("addr", "127.0.0.1:2002", "address to listen on")
+		rootKeySeedHex = flag.String("root-key", "", "hex-encoded root key seed (random 32 bytes)")
+
 		err         error
 		rootKeySeed []byte
 	)
@@ -52,10 +49,10 @@ func main() {
 	if *rootKeySeedHex != "" {
 		rootKeySeed, err = hex.DecodeString(*rootKeySeedHex)
 		if err != nil {
-			log.Fatalf("failed to parse root key seed: %v", err)
+			log.Fatalf("Failed to parse root key seed: %v", err)
 		}
 		if len(rootKeySeed) != 32 {
-			log.Fatalf("unexpected root key seed length: got %d; want 32", len(rootKeySeed))
+			log.Fatalf("Unexpected root key seed length: got %d; want 32", len(rootKeySeed))
 		}
 	} else {
 		rootKeySeed = make([]byte, 32)
@@ -64,20 +61,20 @@ func main() {
 		}
 	}
 	rootSK := ed25519.NewKeyFromSeed(rootKeySeed)
-	log.Printf("root public key: %s", base64.StdEncoding.EncodeToString(rootSK.Public().(ed25519.PublicKey)))
+	log.Printf("Root public key: %s", base64.StdEncoding.EncodeToString(rootSK.Public().(ed25519.PublicKey)))
 
 	netAddr, err := net.ResolveUDPAddr("udp", *addr)
 	if err != nil {
-		log.Fatalf("could not resolve %s: %v", netAddr, err)
+		log.Fatalf("Could not resolve %s: %v", netAddr, err)
 	}
 	conn, err := net.ListenUDP("udp", netAddr)
 	if err != nil {
-		log.Fatalf("could not listen on %s: %v", *addr, err)
+		log.Fatalf("Could not listen on %s: %v", *addr, err)
 	}
 
 	onlinePK, onlineSK, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		log.Fatalf("could not generate key: %v", err)
+		log.Fatalf("Could not generate key: %v", err)
 	}
 
 	now := time.Now()
@@ -85,23 +82,23 @@ func main() {
 	tomorrow := now.Add(24 * time.Hour)
 	onlineCert, err := protocol.NewCertificate(yesterday, tomorrow, onlinePK, rootSK)
 	if err != nil {
-		log.Fatalf("could not generate certificate: %v", err)
+		log.Fatalf("Could not generate certificate: %v", err)
 	}
 
 	buf := make([]byte, 1280)
 	for {
 		reqLen, peer, err := conn.ReadFrom(buf)
 		if err != nil {
-			log.Fatalf("failed to read request: %v", err)
+			log.Fatalf("Failed to read request: %v", err)
 		}
 
 		resp, err := handleRequest(buf[:reqLen], onlineCert, onlineSK)
 		if err != nil {
-			log.Fatalf("error while handling request: %v", err)
+			log.Fatalf("Error while handling request: %v", err)
 		}
 
 		if _, err = conn.WriteTo(resp, peer); err != nil {
-			log.Fatalf("failed to write response: %v", err)
+			log.Fatalf("Failed to write response: %v", err)
 		}
 	}
 }
