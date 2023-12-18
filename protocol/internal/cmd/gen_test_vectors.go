@@ -16,6 +16,7 @@
 package main
 
 import (
+	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,8 +26,6 @@ import (
 
 	"github.com/cloudflare/roughtime/protocol"
 	"github.com/cloudflare/roughtime/protocol/internal/testing"
-
-	"crypto/ed25519"
 )
 
 const (

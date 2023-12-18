@@ -21,6 +21,7 @@ package protocol
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
@@ -28,8 +29,6 @@ import (
 	"math"
 	"sort"
 	"time"
-
-	"crypto/ed25519"
 )
 
 const (

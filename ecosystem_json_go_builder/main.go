@@ -48,7 +48,7 @@ func main() {
 	}
 	defer file.Close()
 
-	fmt.Fprintf(file, filePrefix)
+	fmt.Fprint(file, filePrefix)
 	for _, server := range servers {
 		fmt.Fprintf(file, "\t{\n")
 		fmt.Fprintf(file, "\t\tName:          \"%v\",\n", server.Name)

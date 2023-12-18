@@ -22,6 +22,7 @@ package protocol
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -32,8 +33,6 @@ import (
 	"time"
 
 	protocolTesting "github.com/cloudflare/roughtime/protocol/internal/testing"
-
-	"crypto/ed25519"
 )
 
 var (
