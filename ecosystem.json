@@ -65,6 +65,42 @@
           "address": "time.txryan.com:2002"
         }
       ]
+    },
+    {
+      "name": "sth1.roughtime.netnod.se",
+      "publicKeyType": "ed25519",
+      "publicKey": "9l1JN4HakGnG44yyqyNNCb0HN0XfsysBbnl/kbZoZDc=",
+      "newver": true,
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "sth1.roughtime.netnod.se:2002"
+        }
+      ]
+    },
+    {
+      "name": "sth2.roughtime.netnod.se",
+      "publicKeyType": "ed25519",
+      "publicKey": "T/xxX4ERUBAOpt64Z8phWamKsASZxJ0VWuiPm3GS/8g=",
+      "newver": true,
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "sth2.roughtime.netnod.se:2002"
+        }
+      ]
+    },
+    {
+      "name": "roughtime.se",
+      "publicKeyType": "ed25519",
+      "publicKey": "S3AzfZJ5CjSdkJ21ZJGbxqdYP/SoE8fXKY0+aicsehI=",
+      "newver": true,
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "roughtime.se:2002"
+        }
+      ]
     }
   ]
 }
