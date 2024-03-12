@@ -17,13 +17,13 @@ var Ecosystem = []config.Server{
 		},
 	},
 	{
-		Name:          "Cloudflare-Roughtime",
+		Name:          "Cloudflare-Roughtime-2",
 		PublicKeyType: "ed25519",
-		PublicKey:     []byte{128, 62, 183, 133, 40, 247, 73, 196, 190, 194, 227, 158, 26, 187, 155, 94, 90, 183, 228, 221, 92, 228, 182, 242, 253, 47, 147, 236, 195, 83, 143, 26},
+		PublicKey:     []byte{208, 96, 251, 115, 124, 143, 243, 17, 28, 225, 153, 118, 205, 235, 141, 217, 41, 75, 188, 53, 85, 161, 200, 236, 61, 34, 252, 253, 25, 127, 239, 56},
 		Addresses: []config.ServerAddress{
 			{
 				Protocol: "udp",
-				Address:  "roughtime.cloudflare.com:2002",
+				Address:  "roughtime.cloudflare.com:2003",
 			},
 		},
 	},
