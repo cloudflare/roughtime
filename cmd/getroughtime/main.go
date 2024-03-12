@@ -58,7 +58,7 @@ func main() {
 		if err != nil {
 			logger.Fatal(err)
 		}
-		delta, err := client.AvgDeltaWithRadiusThresh(res, t0, 10*time.Second)
+		delta, err := client.MedianDeltaWithRadiusThresh(res, t0, 10*time.Second)
 		if err != nil {
 			logger.Fatal(err)
 		}
