@@ -42,10 +42,10 @@ func main() {
 	t0 := time.Now()
 	res := client.Do(rtServers, *dialAttempts, *dialTimeout, nil)
 
-	// Compute the average difference between t0 and the time reported by each
+	// Compute the median difference between t0 and the time reported by each
 	// server, rejecting those responses whose radii are too large. (Note that
 	// this accounts for network delay.)
-	delta, err := client.AvgDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
+	delta, err := client.MedianDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
 	if err != nil {
 		logger.Fatal(err)
 	}

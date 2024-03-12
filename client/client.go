@@ -30,6 +30,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/cloudflare/roughtime/config"
@@ -299,16 +300,16 @@ func DoFromFile(configFile string, attempts int, timeout time.Duration, prev *Ro
 	return Do(servers, attempts, timeout, prev), nil
 }
 
-// AvgDeltaWithRadiusThresh computes the average difference between t0
+// MedianDeltaWithRadiusThresh computes the median difference between t0
 // and the time reported by each server, rejecting responses whose uncertainty
 // radii aren't within the accepted limit.
-func AvgDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Duration) (time.Duration, error) {
+func MedianDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Duration) (time.Duration, error) {
 	if len(results) == 0 {
 		return 0, errors.New("no results")
 	}
 
-	ct := 0
-	var delta, delay time.Duration
+	var deltas []time.Duration
+	var delay time.Duration
 	for _, res := range results {
 		delay += res.Delay
 		if res.Error() == nil {
@@ -322,18 +323,20 @@ func AvgDeltaWithRadiusThresh(results []Result, t0 time.Time, thresh time.Durati
 
 			// Add the delta between this time and t0, accounting for the
 			// network delay accumulated so far.
-			delta += t1.Sub(t0) - delay
-
-			// Reset the delay accumulator.
-			ct++
+			deltas = append(deltas, t1.Sub(t0)-delay)
 		}
 	}
 
-	if ct == 0 {
+	if len(deltas) == 0 {
 		return 0, errors.New("no valid responses")
 	}
-
-	return delta / time.Duration(ct), nil
+	// Compute median delta
+	slices.Sort(deltas)
+	if len(deltas)%2 == 0 {
+		return (deltas[(len(deltas)-1)/2] + deltas[len(deltas)/2]) / 2, nil
+	} else {
+		return deltas[(len(deltas)-1)/2], nil
+	}
 }
 
 // Chain represents a sequence of ordered Roughtime queries.

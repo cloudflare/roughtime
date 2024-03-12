@@ -52,9 +52,9 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	// Compute the average difference between t0 and the time reported by the
+	// Compute the median difference between t0 and the time reported by the
 	// each server, excluding those servers whose radii are too large.
-	delta, err := client.AvgDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
+	delta, err := client.MedianDeltaWithRadiusThresh(res, t0, *rtMaxRadius)
 	if err != nil {
 		logger.Fatal(err)
 	}
