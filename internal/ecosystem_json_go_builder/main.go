@@ -52,6 +52,7 @@ func main() {
 	for _, server := range servers {
 		fmt.Fprintf(file, "\t{\n")
 		fmt.Fprintf(file, "\t\tName:          \"%v\",\n", server.Name)
+		fmt.Fprintf(file, "\t\tVersion:       \"%v\",\n", server.Version)
 		fmt.Fprintf(file, "\t\tPublicKeyType: \"%v\",\n", server.PublicKeyType)
 
 		fmt.Fprint(file, "\t\tPublicKey:     []byte{")
