@@ -6,18 +6,8 @@ import "github.com/cloudflare/roughtime/config"
 
 var Ecosystem = []config.Server{
 	{
-		Name:          "Chainpoint-Roughtime",
-		PublicKeyType: "ed25519",
-		PublicKey:     []byte{109, 180, 254, 68, 244, 187, 204, 165, 250, 195, 189, 108, 176, 248, 155, 206, 108, 22, 169, 79, 95, 125, 21, 121, 162, 61, 142, 173, 235, 18, 154, 17},
-		Addresses: []config.ServerAddress{
-			{
-				Protocol: "udp",
-				Address:  "roughtime.chainpoint.org:2002",
-			},
-		},
-	},
-	{
 		Name:          "Cloudflare-Roughtime-2",
+		Version:       "IETF-Roughtime",
 		PublicKeyType: "ed25519",
 		PublicKey:     []byte{208, 96, 251, 115, 124, 143, 243, 17, 28, 225, 153, 118, 205, 235, 141, 217, 41, 75, 188, 53, 85, 161, 200, 236, 61, 34, 252, 253, 25, 127, 239, 56},
 		Addresses: []config.ServerAddress{
@@ -28,18 +18,8 @@ var Ecosystem = []config.Server{
 		},
 	},
 	{
-		Name:          "Google-Sandbox-Roughtime",
-		PublicKeyType: "ed25519",
-		PublicKey:     []byte{122, 211, 218, 104, 140, 92, 4, 198, 53, 161, 71, 134, 167, 11, 207, 48, 34, 76, 194, 84, 85, 55, 27, 249, 212, 162, 191, 182, 75, 104, 37, 52},
-		Addresses: []config.ServerAddress{
-			{
-				Protocol: "udp",
-				Address:  "roughtime.sandbox.google.com:2002",
-			},
-		},
-	},
-	{
 		Name:          "int08h-Roughtime",
+		Version:       "Google-Roughtime",
 		PublicKeyType: "ed25519",
 		PublicKey:     []byte{1, 110, 110, 2, 132, 210, 76, 55, 198, 228, 215, 216, 213, 180, 225, 211, 193, 148, 156, 234, 165, 69, 191, 135, 86, 22, 201, 220, 224, 201, 190, 193},
 		Addresses: []config.ServerAddress{
@@ -50,18 +30,8 @@ var Ecosystem = []config.Server{
 		},
 	},
 	{
-		Name:          "ticktock",
-		PublicKeyType: "ed25519",
-		PublicKey:     []byte{114, 63, 6, 178, 35, 101, 70, 74, 162, 12, 73, 64, 120, 211, 18, 4, 19, 48, 172, 9, 117, 230, 22, 15, 129, 126, 116, 248, 101, 151, 254, 80},
-		Addresses: []config.ServerAddress{
-			{
-				Protocol: "udp",
-				Address:  "ticktock.mixmin.net:5333",
-			},
-		},
-	},
-	{
 		Name:          "time.txryan.com",
+		Version:       "Google-Roughtime",
 		PublicKeyType: "ed25519",
 		PublicKey:     []byte{136, 21, 99, 198, 15, 245, 143, 188, 181, 250, 68, 20, 76, 22, 29, 77, 166, 241, 10, 154, 94, 177, 79, 244, 236, 62, 15, 48, 50, 100, 217, 96},
 		Addresses: []config.ServerAddress{

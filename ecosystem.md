@@ -6,37 +6,7 @@ provisioned. Refer to `README.md` for information about adding your server to
 the list.
 
 
-## Chainpoint-Roughtime
-
-The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
-at `roughtime.chainpoint.org:2002`. The public key, and information about
-running the Docker container we've created for [roughenough](https://github.com/int08h/roughenough),
-is provided at [https://github.com/chainpoint/chainpoint-roughtime](https://github.com/chainpoint/chainpoint-roughtime).
-
-In addition to the Github repository `README.md`, the long-term public key in
-Hexadecimal form is also provided as a DNS `TXT` record accessible with:
-
-```
-$ dig -t txt roughtime.chainpoint.org
-```
-
-The Chainpoint Roughtime service is in open beta, but aims to operate with
-high-availability. The [roughenough](https://github.com/int08h/roughenough)
-Rust implementation of Roughtime is currently running on two servers in the
-Google Compute Engine cloud (US-EAST4), both synced to Google's internal
-high accuracy NTP service. These servers exist behind a public UDP
-load-balancer and a Cloudflare DNS `A` record.
-
-
-## Cloudflare-Roughtime (**Deprecated**)
-
-
-**Deprecation notice**: The Cloudflare-Roughtime server will be shut down on
-July 1, 2024. Please update your client to use Cloudflare-Roughtime-2 instead.
-
-
 ## Cloudflare-Roughtime-2
-
 
 Cloudflare's Roughtime service aims for high availability and low latency. The
 [announcement](https://blog.cloudflare.com/roughtime/) provides details about
@@ -50,15 +20,6 @@ currently in beta. As such the root key is subject to change. It will be
 updated here and in the [developer
 docs](https://developers.cloudflare.com/time-services/roughtime/recipes/). You
 can also obtain it over DNS; see the docs for details.
-
-
-## Google-Sandbox-Roughtime
-
-This is Google's [proof-of-concept
-server](https://roughtime.googlesource.com/roughtime/#current-state-of-the-project).
-It is experimental and does not, as of yet, provide uptime guarantees. The root
-public key is published
-[here](https://roughtime.googlesource.com/roughtime/+/master/roughtime-servers.json).
 
 
 ## int08h-Roughtime
@@ -76,17 +37,6 @@ The public key is available from the `README.md` in this project,
 a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
 and the DNS `TXT` record of `roughtime.int08h.com` (see the 
 [Chainpoint](#chainpoint-roughtime) entry for how to look this up with `dig`).
-
-
-## Mixmin Roughtime
-
-Mixmin's Roughtime service resides on a dedicated Raspberry Pi running Arch
-Linux.  The Pi has an Adafruit GPS module fitted and uses it to sync the system
-clock via NTP.  It uses Adam Langley's reference implementation of Roughtime,
-written in Go and is compiled locally on the Raspberry Pi.  The Roughtime
-server was announced on the mailing list, archived
-[here](https://groups.google.com/a/chromium.org/forum/#!topic/proto-roughtime/7PApRXJ-x0Y).
-The announcement includes the server details.
 
 
 ## time.txryan.com
@@ -114,3 +64,62 @@ implementation](https://roughtime.googlesource.com/roughtime/).
 No uptime is guaranteed, but the server is constantly monitored for accuracy and
 availability. From time to time, there may be a few minutes of downtime for
 server maintenance.
+
+
+## Inactive servers
+
+
+## Chainpoint-Roughtime
+
+**This service is unreachable as of 2024-07-01.**
+
+The [Chainpoint](https://chainpoint.org) Roughtime service is hosted
+at `roughtime.chainpoint.org:2002`. The public key, and information about
+running the Docker container we've created for [roughenough](https://github.com/int08h/roughenough),
+is provided at [https://github.com/chainpoint/chainpoint-roughtime](https://github.com/chainpoint/chainpoint-roughtime).
+
+In addition to the Github repository `README.md`, the long-term public key in
+Hexadecimal form is also provided as a DNS `TXT` record accessible with:
+
+```
+$ dig -t txt roughtime.chainpoint.org
+```
+
+The Chainpoint Roughtime service is in open beta, but aims to operate with
+high-availability. The [roughenough](https://github.com/int08h/roughenough)
+Rust implementation of Roughtime is currently running on two servers in the
+Google Compute Engine cloud (US-EAST4), both synced to Google's internal
+high accuracy NTP service. These servers exist behind a public UDP
+load-balancer and a Cloudflare DNS `A` record.
+
+
+
+### Cloudflare-Roughtime
+
+**Deprecation notice**: The Cloudflare-Roughtime server will be shut down on
+2024-07-01. Please update your client to use Cloudflare-Roughtime-2 instead.
+
+
+## Google-Sandbox-Roughtime
+
+**This service is unreachable as of 2024-07-01.**
+
+This is Google's [proof-of-concept
+server](https://roughtime.googlesource.com/roughtime/#current-state-of-the-project).
+It is experimental and does not, as of yet, provide uptime guarantees. The root
+public key is published
+[here](https://roughtime.googlesource.com/roughtime/+/master/roughtime-servers.json).
+
+
+## Mixmin Roughtime
+
+**This service is unreachable as of 2024-07-01.**
+
+Mixmin's Roughtime service resides on a dedicated Raspberry Pi running Arch
+Linux.  The Pi has an Adafruit GPS module fitted and uses it to sync the system
+clock via NTP.  It uses Adam Langley's reference implementation of Roughtime,
+written in Go and is compiled locally on the Raspberry Pi.  The Roughtime
+server was announced on the mailing list, archived
+[here](https://groups.google.com/a/chromium.org/forum/#!topic/proto-roughtime/7PApRXJ-x0Y).
+The announcement includes the server details.
+
