@@ -12,15 +12,15 @@
       ]
     },
     {
-      "name": "Cloudflare-Roughtime",
-      "publicKeyType": "ed25519",
-      "publicKey": "gD63hSj3ScS+wuOeGrubXlq35N1c5Lby/S+T7MNTjxo=",
-      "addresses": [
-        {
-          "protocol": "udp",
-          "address": "roughtime.cloudflare.com:2002"
-        }
-      ]
+        "name": "Cloudflare-Roughtime-2",
+        "publicKeyType": "ed25519",
+        "publicKey": "0GD7c3yP8xEc4Zl2zeuN2SlLvDVVocjsPSL8/Rl/7zg=",
+        "addresses": [
+            {
+                "protocol": "udp",
+                "address": "roughtime.cloudflare.com:2003"
+            }
+        ]
     },
     {
       "name": "Google-Sandbox-Roughtime",

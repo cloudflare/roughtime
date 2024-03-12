@@ -28,7 +28,15 @@ high accuracy NTP service. These servers exist behind a public UDP
 load-balancer and a Cloudflare DNS `A` record.
 
 
-## Cloudflare-Roughtime
+## Cloudflare-Roughtime (**Deprecated**)
+
+
+**Deprecation notice**: The Cloudflare-Roughtime server will be shut down on
+July 1, 2024. Please update your client to use Cloudflare-Roughtime-2 instead.
+
+
+## Cloudflare-Roughtime-2
+
 
 Cloudflare's Roughtime service aims for high availability and low latency. The
 [announcement](https://blog.cloudflare.com/roughtime/) provides details about
@@ -36,9 +44,11 @@ how we set up the service. Briefly, the domain for Roughtime resolves to an
 address in Cloudflare's anycast IP range (both IPv4 and IPv6 are supported), so
 the response may come from any one of their points of presence. The
 implementation is based on Google's [Go
-code](https://roughtime.googlesource.com/roughtime). This service is currently in beta. As
-such the root key is subject to change. It will be updated here and in the
-[developer docs](https://developers.cloudflare.com/time-services/roughtime/recipes/). You
+code](https://roughtime.googlesource.com/roughtime), but has been updated to
+support both Google-Roughtime and IETF Roughtime (draft08). This service is
+currently in beta. As such the root key is subject to change. It will be
+updated here and in the [developer
+docs](https://developers.cloudflare.com/time-services/roughtime/recipes/). You
 can also obtain it over DNS; see the docs for details.
 
 
