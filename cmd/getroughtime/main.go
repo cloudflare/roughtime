@@ -39,6 +39,7 @@ func main() {
 	configFile := flag.String("config", "", "A list of Roughtime servers.")
 	pingAddr := flag.String("ping", "", "Send a UDP request, e.g., localhost:2002.")
 	pingPubKey := flag.String("pubkey", "", "The Ed25519 public key of the address to ping.")
+	pingVersion := flag.String("ping-version", "Google-Roughtime", "The Roughtime version to use in ping.")
 	attempts := flag.Int("attempts", client.DefaultQueryAttempts, "Number of times to try each server.")
 	timeout := flag.Duration("timeout", client.DefaultQueryTimeout, "Amount of time to wait for each request.")
 
@@ -75,9 +76,15 @@ func main() {
 		} else if len(pk) != 32 {
 			logger.Fatalf("Public key decode error: incorrect length")
 		}
+		switch *pingVersion {
+		case "Google-Roughtime", "IETF-Roughtime":
+		default:
+			logger.Fatalf("Invalid ping version: %s\n", *pingVersion)
+		}
 
 		server := &config.Server{
 			Name:          "",
+			Version:       *pingVersion,
 			PublicKeyType: "ed25519",
 			PublicKey:     pk,
 			Addresses: []config.ServerAddress{
