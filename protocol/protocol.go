@@ -67,7 +67,7 @@ var (
 	tagROOT = makeTag("ROOT")
 	tagSIG  = makeTag("SIG\x00")
 	tagSREP = makeTag("SREP")
-	tagVER  = makeTag("VER\xff")
+	tagVER  = makeTag("VER\x00")
 	tagZZZZ = makeTag("ZZZZ")
 )
 
