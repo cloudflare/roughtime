@@ -378,11 +378,11 @@ func TestIETFTags(t *testing.T) {
 		{
 			name: "ZZZZ",
 			got:  tagZZZZ,
-			want: 0x7a7a7a7a,
+			want: 0x5a5a5a5a,
 		},
 	} {
-		if tc.got == tc.want {
-			t.Errorf("%s mismatch", tc.name)
+		if tc.got != tc.want {
+			t.Errorf("%s mismatch: got %04x; want %04x", tc.name, tc.got, tc.want)
 		}
 	}
 }
