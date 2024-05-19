@@ -19,7 +19,7 @@ var Ecosystem = []config.Server{
 	},
 	{
 		Name:          "int08h-Roughtime",
-		Version:       "Google-Roughtime",
+		Version:       "IETF-Roughtime",
 		PublicKeyType: "ed25519",
 		PublicKey:     []byte{1, 110, 110, 2, 132, 210, 76, 55, 198, 228, 215, 216, 213, 180, 225, 211, 193, 148, 156, 234, 165, 69, 191, 135, 86, 22, 201, 220, 224, 201, 190, 193},
 		Addresses: []config.ServerAddress{
