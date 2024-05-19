@@ -28,16 +28,26 @@ A public Roughtime server operated by the author of the [Rust](https://github.co
 and [Java](https://github.com/int08h/nearenough) implementations of Roughtime.
 
 The server runs the latest release of [roughenough](https://github.com/int08h/roughenough) 
-on a Google Compute Engine instance within us-central1 and sources time from Google's 
-[leapsecond smeared NTP](https://developers.google.com/time/smear) servers. 
+on Digital Ocean droplets in their US NYC datacenter. The server supports both the 
+Google-Roughtime and IETF-Roughtime protocols. Time is sourced from Google's 
+[public NTP servers](https://developers.google.com/time/smear), 
+Amazon's [public NTP servers](https://aws.amazon.com/about-aws/whats-new/2022/11/amazon-time-sync-internet-public-ntp-service/),
+and NIST's [public NTP servers](https://www.nist.gov/pml/time-and-frequency-division/time-distribution/internet-time-service-its).
+
 Available at `roughtime.int08h.com:2002` its public key is stable and the service 
-is available 24/7. 
+is available 24/7, modulo a few seconds downtime for maintenance. 
 
-The public key is available from the `README.md` in this project, 
-a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
-and the DNS `TXT` record of `roughtime.int08h.com` (see the 
-[Chainpoint](#chainpoint-roughtime) entry for how to look this up with `dig`).
+The int08h instance keeps the "rough" in Roughtime: it smears leapseconds
+and always reports a 'radius' (RADI tag) of 2 seconds to account for the resulting 
+uncertainty. The int08h Roughtime instance will **never** set the DUT1, 
+DTAI, or LEAP tags as this level of precision is unnecessary.
 
+The public key is available in a [blog post at int08h](https://int08h.com/post/public-roughtime-server/), 
+and the DNS `TXT` record of `roughtime.int08h.com`:
+
+```
+$ dig -t txt roughtime.int08h.com
+```
 
 ## time.txryan.com
 

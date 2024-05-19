@@ -14,7 +14,7 @@
     },
     {
       "name": "int08h-Roughtime",
-      "version": "Google-Roughtime",
+      "version": "IETF-Roughtime",
       "publicKeyType": "ed25519",
       "publicKey": "AW5uAoTSTDfG5NfY1bTh08GUnOqlRb+HVhbJ3ODJvsE=",
       "addresses": [
