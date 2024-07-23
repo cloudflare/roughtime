@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -79,9 +80,10 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestRequestSize(t *testing.T) {
+	rootPublicKey := make([]byte, 32)
 	for _, ver := range allVersions {
 		t.Run(ver.String(), func(t *testing.T) {
-			_, _, request, err := CreateRequest([]Version{ver}, rand.Reader, nil)
+			_, _, request, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKey)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -92,22 +94,22 @@ func TestRequestSize(t *testing.T) {
 	}
 }
 
-func createServerIdentity(t *testing.T) (cert *Certificate, rootPublicKey, onlinePrivateKey []byte) {
+func createServerIdentity(t *testing.T) (cert *Certificate, rootPublicKey []byte) {
 	rootPublicKey, rootPrivateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	onlinePublicKey, onlinePrivateKey, err := ed25519.GenerateKey(rand.Reader)
+	_, onlinePrivateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if cert, err = NewCertificate(testMinTime, testMaxTime, onlinePublicKey, rootPrivateKey); err != nil {
+	if cert, err = NewCertificate(testMinTime, testMaxTime, onlinePrivateKey, rootPrivateKey); err != nil {
 		t.Fatal(err)
 	}
 
-	return cert, rootPublicKey, onlinePrivateKey
+	return cert, rootPublicKey
 }
 
 func TestRunTestVectors(t *testing.T) {
@@ -147,8 +149,7 @@ func TestRunTestVectors(t *testing.T) {
 				t.Fatal(err)
 			}
 			onlinePrivateKey := ed25519.NewKeyFromSeed(onlineKeySeed)
-			onlinePublicKey := onlinePrivateKey.Public().(ed25519.PublicKey)
-			onlineCert, err := NewCertificate(testMinTime, testMaxTime, onlinePublicKey, rootPrivateKey)
+			onlineCert, err := NewCertificate(testMinTime, testMaxTime, onlinePrivateKey, rootPrivateKey)
 			if err != nil {
 				panic(err)
 			}
@@ -164,16 +165,16 @@ func TestRunTestVectors(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				nonce, vers, err := HandleRequest(requestBytes)
+				req, err := ParseRequest(requestBytes)
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				for _, ver := range vers {
+				for _, ver := range req.Versions {
 					advertisedVersions[ver] += 1
 				}
 
-				nonces = append(nonces, nonce)
+				nonces = append(nonces, req.Nonce)
 			}
 
 			supportedVersions := make([]Version, 0, len(allVersions))
@@ -187,7 +188,7 @@ func TestRunTestVectors(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, onlineCert, onlinePrivateKey)
+			replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, onlineCert)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -215,7 +216,7 @@ func TestRunTestVectors(t *testing.T) {
 }
 
 func TestRoundtrip(t *testing.T) {
-	cert, rootPublicKey, onlinePrivateKey := createServerIdentity(t)
+	cert, rootPublicKey := createServerIdentity(t)
 
 	for _, ver := range allVersions {
 		t.Run(ver.String(), func(t *testing.T) {
@@ -227,25 +228,25 @@ func TestRoundtrip(t *testing.T) {
 
 				nonces := make([][]byte, 0, numRequests)
 				for i := 0; i < numRequests; i++ {
-					nonceSent, _, request, err := CreateRequest([]Version{ver}, rand.Reader, nil)
+					nonceSent, _, request, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKey)
 					if err != nil {
 						panic(err)
 					}
 
-					nonceReceived, vers, err := HandleRequest(request)
+					req, err := ParseRequest(request)
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					if !bytes.Equal(nonceSent, nonceReceived) {
+					if !bytes.Equal(nonceSent, req.Nonce) {
 						t.Fatal("received nonce does not match sent")
 					}
 
-					for _, ver := range vers {
+					for _, ver := range req.Versions {
 						advertisedVersions[ver] += 1
 					}
 
-					nonces = append(nonces, nonceReceived)
+					nonces = append(nonces, req.Nonce)
 				}
 
 				supportedVersions := make([]Version, 0, len(allVersions))
@@ -259,7 +260,7 @@ func TestRoundtrip(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, cert, onlinePrivateKey)
+				replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, cert)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -292,27 +293,27 @@ func TestChaining(t *testing.T) {
 	// would be checked. The client creates a two element chain in this
 	// example where the first server says that the time is 10 and the
 	// second says that it's 5.
-	certA, rootPublicKeyA, onlinePrivateKeyA := createServerIdentity(t)
-	certB, rootPublicKeyB, onlinePrivateKeyB := createServerIdentity(t)
+	certA, rootPublicKeyA := createServerIdentity(t)
+	certB, rootPublicKeyB := createServerIdentity(t)
 
 	for _, ver := range allVersions {
 		t.Run(ver.String(), func(t *testing.T) {
-			nonce1, _, _, err := CreateRequest([]Version{ver}, rand.Reader, nil)
+			nonce1, _, _, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKeyA)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			replies1, err := CreateReplies(ver, [][]byte{nonce1[:]}, testMidpoint, testRadius, certA, onlinePrivateKeyA)
+			replies1, err := CreateReplies(ver, [][]byte{nonce1[:]}, testMidpoint, testRadius, certA)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			nonce2, blind2, _, err := CreateRequest([]Version{ver}, rand.Reader, replies1[0])
+			nonce2, blind2, _, err := CreateRequest([]Version{ver}, rand.Reader, replies1[0], rootPublicKeyB)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			replies2, err := CreateReplies(ver, [][]byte{nonce2[:]}, testMidpoint.Add(time.Duration(-10)*time.Second), testRadius, certB, onlinePrivateKeyB)
+			replies2, err := CreateReplies(ver, [][]byte{nonce2[:]}, testMidpoint.Add(time.Duration(-10)*time.Second), testRadius, certB)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -371,6 +372,11 @@ func TestIETFTags(t *testing.T) {
 		want uint32
 	}{
 		{
+			name: "SRV",
+			got:  tagSRV,
+			want: 0x00565253,
+		},
+		{
 			name: "VER",
 			got:  tagVER,
 			want: 0x00524556,
@@ -388,19 +394,20 @@ func TestIETFTags(t *testing.T) {
 }
 
 func TestServerIgnoresUnrecognizedVersions(t *testing.T) {
+	rootPublicKey := make([]byte, 32)
 	for _, ver := range ietfVersions {
 		t.Run(ver.String(), func(t *testing.T) {
-			_, _, request, err := CreateRequest([]Version{0x1234578, ver, 0xffffffff, ver}, rand.Reader, nil)
+			_, _, request, err := CreateRequest([]Version{0x1234578, ver, 0xffffffff, ver}, rand.Reader, nil, rootPublicKey)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			_, vers, err := HandleRequest(request)
+			req, err := ParseRequest(request)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if len(vers) != 1 || vers[0] != ver {
+			if len(req.Versions) != 1 || req.Versions[0] != ver {
 				t.Fatal("unexpected version")
 			}
 		})
@@ -428,4 +435,102 @@ func TestEmptyVersionPreference(t *testing.T) {
 			t.Fatalf("advertisedVersions: got %q; want %q", advertisedVersions, ietfVersions)
 		}
 	}
+}
+
+func TestSelectCertificateForRequest(t *testing.T) {
+	certs := make([]Certificate, 0)
+	rootPublicKeys := make([]ed25519.PublicKey, 0)
+	for i := 0; i < 4; i++ {
+		cert, rootPublicKey := createServerIdentity(t)
+		certs = append(certs, *cert)
+		rootPublicKeys = append(rootPublicKeys, rootPublicKey)
+
+	}
+
+	for i := range certs {
+		t.Run(fmt.Sprintf("select_server_%v", i), func(t *testing.T) {
+			_, _, reqBytes, err := CreateRequest([]Version{}, rand.Reader, nil, rootPublicKeys[i])
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req, err := ParseRequest(reqBytes)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			selectedCert := SelectCertificateForRequest(req, certs)
+			if selectedCert == nil {
+				t.Fatal("no certificate selected")
+			}
+
+			if !bytes.Equal(selectedCert.srv, certs[i].srv) {
+				t.Fatalf("selected the wrong certificate")
+			}
+		})
+	}
+
+	t.Run("unknown_server", func(t *testing.T) {
+		_, unknownRootPublicKey := createServerIdentity(t)
+
+		_, _, reqBytes, err := CreateRequest([]Version{}, rand.Reader, nil, unknownRootPublicKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		req, err := ParseRequest(reqBytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		selectedCert := SelectCertificateForRequest(req, certs)
+		if selectedCert != nil {
+			t.Fatal("certificate selected for unknown server")
+		}
+	})
+
+	t.Run("empty_cert_list", func(t *testing.T) {
+		_, someRootPublicKey := createServerIdentity(t)
+
+		_, _, reqBytes, err := CreateRequest([]Version{}, rand.Reader, nil, someRootPublicKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		req, err := ParseRequest(reqBytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		selectedCert := SelectCertificateForRequest(req, []Certificate{})
+		if selectedCert != nil {
+			t.Fatal("certificate selected from empty list")
+		}
+
+	})
+
+	for i := range certs {
+		t.Run(fmt.Sprintf("tag_not_sent_server_%v", i), func(t *testing.T) {
+			_, _, reqBytes, err := CreateRequest([]Version{VersionDraft08}, rand.Reader, nil, rootPublicKeys[i])
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req, err := ParseRequest(reqBytes)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			selectedCert := SelectCertificateForRequest(req, certs)
+			if selectedCert == nil {
+				t.Fatal("no certificate selected")
+			}
+
+			// No SRV tag was sent, so expect the server to select the first.
+			if !bytes.Equal(selectedCert.srv, certs[0].srv) {
+				t.Fatalf("selected the wrong certificate")
+			}
+		})
+	}
+
 }

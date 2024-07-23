@@ -58,8 +58,7 @@ func init() {
 		panic(err)
 	}
 	onlinePrivateKey = ed25519.NewKeyFromSeed(onlineKeySeed)
-	onlinePublicKey := onlinePrivateKey.Public().(ed25519.PublicKey)
-	onlineCert, err = protocol.NewCertificate(testMinTime, testMaxTime, onlinePublicKey, rootPrivateKey)
+	onlineCert, err = protocol.NewCertificate(testMinTime, testMaxTime, onlinePrivateKey, rootPrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -90,6 +89,8 @@ func fileNmameFor(ver protocol.Version) string {
 		return "roughtime_google"
 	case protocol.VersionDraft08:
 		return "roughtime_ietf_draft08"
+	case protocol.VersionDraft10:
+		return "roughtime_ietf_draft10"
 	default:
 		panic("unhandled version")
 	}
@@ -100,7 +101,7 @@ func main() {
 		panic(err)
 	}
 
-	for _, ver := range []protocol.Version{protocol.VersionDraft08, protocol.VersionGoogle} {
+	for _, ver := range []protocol.Version{protocol.VersionDraft10, protocol.VersionDraft08, protocol.VersionGoogle} {
 		r := testing.NewTestRand()
 		clientVersionPref := []protocol.Version{ver}
 
@@ -113,7 +114,7 @@ func main() {
 			// Set the requests and replies.
 			nonces := make([][]byte, 0, numRequestsPerBatch)
 			for i := 0; i < numRequestsPerBatch; i++ {
-				nonce, _, request, err := protocol.CreateRequest(clientVersionPref, r, nil)
+				nonce, _, request, err := protocol.CreateRequest(clientVersionPref, r, nil, rootPublicKey)
 				if err != nil {
 					panic(err)
 				}
@@ -121,7 +122,7 @@ func main() {
 				nonces = append(nonces, nonce[:])
 			}
 
-			replies, err := protocol.CreateReplies(ver, nonces, testMidpoint, testRadius, onlineCert, onlinePrivateKey)
+			replies, err := protocol.CreateReplies(ver, nonces, testMidpoint, testRadius, onlineCert)
 			if err != nil {
 				panic(err)
 			}
