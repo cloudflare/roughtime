@@ -72,7 +72,7 @@ func main() {
 		log.Fatalf("Could not listen on %s: %v", *addr, err)
 	}
 
-	onlinePK, onlineSK, err := ed25519.GenerateKey(rand.Reader)
+	_, onlineSK, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		log.Fatalf("Could not generate key: %v", err)
 	}
@@ -80,7 +80,7 @@ func main() {
 	now := time.Now()
 	yesterday := now.Add(-24 * time.Hour)
 	tomorrow := now.Add(24 * time.Hour)
-	onlineCert, err := protocol.NewCertificate(yesterday, tomorrow, onlinePK, rootSK)
+	onlineCert, err := protocol.NewCertificate(yesterday, tomorrow, onlineSK, rootSK)
 	if err != nil {
 		log.Fatalf("Could not generate certificate: %v", err)
 	}
@@ -103,19 +103,19 @@ func main() {
 	}
 }
 
-func handleRequest(req []byte, cert *protocol.Certificate, onlineSK ed25519.PrivateKey) (resp []byte, err error) {
-	nonce, supportedVerions, err := protocol.HandleRequest(req)
+func handleRequest(requestBytes []byte, cert *protocol.Certificate, onlineSK ed25519.PrivateKey) (resp []byte, err error) {
+	req, err := protocol.ParseRequest(requestBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	responseVer, err := protocol.ResponseVersionFromSupported(supportedVerions)
+	responseVer, err := protocol.ResponseVersionFromSupported(req.Versions)
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse the request and create the response.
-	replies, err := protocol.CreateReplies(responseVer, [][]byte{nonce}, time.Now(), radius, cert, onlineSK)
+	replies, err := protocol.CreateReplies(responseVer, [][]byte{req.Nonce}, time.Now(), radius, cert)
 	if err != nil {
 		return nil, err
 	}

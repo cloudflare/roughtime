@@ -67,6 +67,7 @@ var (
 	tagROOT = makeTag("ROOT")
 	tagSIG  = makeTag("SIG\x00")
 	tagSREP = makeTag("SREP")
+	tagSRV  = makeTag("SRV\x00")
 	tagVER  = makeTag("VER\x00")
 	tagZZZZ = makeTag("ZZZZ")
 )
@@ -288,12 +289,22 @@ func decodeFramed(req []byte) ([]byte, bool, error) {
 	return req, versionIETF, nil
 }
 
+func handleSRVTag(advertisedPreference []Version) bool {
+	for _, version := range advertisedPreference {
+		// The SRV tag is first defined in draft-ietf-ntp-roughtime-10
+		if version == VersionDraft10 {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateRequest creates a Roughtime request given an entropy source and the
 // contents of a previous reply for chaining. If this request is the first of a
 // chain, prevReply can be empty. It returns the nonce (needed to verify the
 // reply), the blind (needed to prove correct chaining to an external party)
 // and the request itself.
-func CreateRequest(versionPreference []Version, rand io.Reader, prevReply []byte) (nonce, blind []byte, request []byte, err error) {
+func CreateRequest(versionPreference []Version, rand io.Reader, prevReply, rootPublicKey ed25519.PublicKey) (nonce, blind []byte, request []byte, err error) {
 	advertisedVersions, versionIETF, err := advertisedVersionsFromPreference(versionPreference)
 	if err != nil {
 		return nil, nil, nil, err
@@ -325,6 +336,19 @@ func CreateRequest(versionPreference []Version, rand io.Reader, prevReply []byte
 		}
 		packet[tagVER] = encoded
 		valuesLen += len(encoded)
+		numTags += 1
+	}
+
+	// SRV
+	if handleSRVTag(advertisedVersions) {
+		srv := make([]byte, 0, 64)
+		h := sha512.New()
+		h.Write([]byte{0xff})
+		h.Write(rootPublicKey)
+		h.Sum(srv)
+		srv = srv[:32]
+		packet[tagSRV] = srv
+		valuesLen += len(nonce)
 		numTags += 1
 	}
 
@@ -455,59 +479,77 @@ func (t *tree) Path(index int) (path [][]byte) {
 	return path
 }
 
-// HandleRequest resolves the supported versions indicated by the client and
+// Request is a request sent by a client.
+type Request struct {
+	// Nonce is the request nonce.
+	Nonce []byte
+	// Nonce is the sequence of versions advertised by the client, ordered from
+	// most to least preferred.
+	Versions []Version
+	// srv is the SRV tag indicating which root public key the client is
+	// expecting to verify the response with.
+	srv []byte
+}
+
+// ParseRequest resolves the supported versions indicated by the client and
 // parses the values required to produce a response.
-func HandleRequest(bytes []byte) (nonce []byte, vers []Version, err error) {
+func ParseRequest(bytes []byte) (req *Request, err error) {
 	if len(bytes) < MinRequestSize {
-		return nil, nil, errRequestLen
+		return nil, errRequestLen
 	}
 
 	msg, versionIETF, err := decodeFramed(bytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	packet, err := Decode(msg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	nonce, ok := packet[tagNONC]
 	if !ok || len(nonce) != nonceSize(versionIETF) {
-		return nil, nil, errNonceLen
+		return nil, errNonceLen
 	}
 
+	var versions []Version
 	if versionIETF {
 		encoded, ok := packet[tagVER]
 		if !ok {
-			return nil, nil, errMissingVersion
+			return nil, errMissingVersion
 		}
 		for len(encoded) > 0 {
 			if len(encoded) < 4 {
-				return nil, nil, errDecode("malformed version list")
+				return nil, errDecode("malformed version list")
 			}
 
 			ver := Version(binary.LittleEndian.Uint32(encoded[:4]))
 			if ver.isSupported() {
 				// De-duplicate any repeated version.
 				ok := true
-				for i := range vers {
-					if vers[i] == ver {
+				for i := range versions {
+					if versions[i] == ver {
 						ok = false
 						break
 					}
 				}
 				if ok {
-					vers = append(vers, ver)
+					versions = append(versions, ver)
 				}
 			}
 			encoded = encoded[4:]
 		}
 	} else {
-		vers = []Version{VersionGoogle}
+		versions = []Version{VersionGoogle}
 	}
 
-	return nonce, vers, nil
+	var srv []byte
+	if handleSRVTag(versions) {
+		srv = packet[tagSRV]
+	}
+
+	return &Request{nonce, versions, srv}, nil
 }
 
 // CreateReplies signs, using privateKey, a batch of nonces along with the
@@ -516,7 +558,7 @@ func HandleRequest(bytes []byte) (nonce []byte, vers []Version, err error) {
 //
 // The same version is indicated in each reply. It's the callers responsibility
 // to ensure that each client supports this version.
-func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time.Duration, cert *Certificate, privateKey []byte) ([][]byte, error) {
+func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time.Duration, cert *Certificate) ([][]byte, error) {
 	versionIETF := ver != VersionGoogle
 	nonceSize := nonceSize(versionIETF)
 
@@ -554,7 +596,7 @@ func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time
 	}
 
 	toBeSigned := signedResponseContext + string(signedReplyBytes)
-	sig := ed25519.Sign(privateKey, []byte(toBeSigned))
+	sig := ed25519.Sign(cert.onlinePrivateKey, []byte(toBeSigned))
 
 	reply := map[uint32][]byte{
 		tagSREP: signedReplyBytes,
@@ -594,11 +636,18 @@ func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time
 }
 
 type Certificate struct {
-	// googleCert is the certificate we send to legacy clients
+	// googleBytes is the certificate we send to legacy clients
 	// (Google-Roughtime). The MINT and MAXT fields encode timestamps in
 	// microseconds.
 	googleBytes []byte
 	bytes       []byte
+
+	// onlinePrivateKey is the online private key.
+	onlinePrivateKey ed25519.PrivateKey
+
+	// srv is the payload of the SRV tag that the client would send to indicate
+	// the root public key delegated by this certificate.
+	srv ed25519.PublicKey
 }
 
 // BytesForVersion returns a serialized certificate compatible with the given
@@ -613,9 +662,29 @@ func (cert *Certificate) BytesForVersion(ver Version) []byte {
 	}
 }
 
+// Select a certificate suitable for responding to the request.
+func SelectCertificateForRequest(req *Request, certs []Certificate) *Certificate {
+	// Return the first certificate for which the root public key was indicated
+	// by the client.
+	for _, cert := range certs {
+		if bytes.Equal(req.srv, cert.srv) {
+			return &cert
+		}
+	}
+
+	// If no SRV tag was sent, then guess the first certificate.
+	if len(req.srv) == 0 && len(certs) > 0 {
+		return &certs[0]
+	}
+
+	// The SRV tag indicates an unknown root public key, or the certificate
+	// list is empty.
+	return nil
+}
+
 // NewCertificate returns a signed certificate, using rootPrivateKey,
-// delegating authority for the given timestamp to publicKey.
-func NewCertificate(minTime, maxTime time.Time, publicKey, rootPrivateKey []byte) (cert *Certificate, err error) {
+// delegating authority for the given timestamp to onlinePrivateKey.
+func NewCertificate(minTime, maxTime time.Time, onlinePrivateKey, rootPrivateKey ed25519.PrivateKey) (cert *Certificate, err error) {
 	if maxTime.Before(minTime) {
 		return nil, errors.New("protocol: maxTime < minTime")
 	}
@@ -641,7 +710,7 @@ func NewCertificate(minTime, maxTime time.Time, publicKey, rootPrivateKey []byte
 		binary.LittleEndian.PutUint64(maxTimeBytes[:], t.maxTime)
 
 		signed := map[uint32][]byte{
-			tagPUBK: publicKey,
+			tagPUBK: ed25519.PrivateKey(onlinePrivateKey).Public().(ed25519.PublicKey),
 			tagMINT: minTimeBytes[:],
 			tagMAXT: maxTimeBytes[:],
 		}
@@ -665,9 +734,19 @@ func NewCertificate(minTime, maxTime time.Time, publicKey, rootPrivateKey []byte
 		}
 	}
 
+	// SRV
+	srv := make([]byte, 0, 64)
+	h := sha512.New()
+	h.Write([]byte{0xff})
+	h.Write(ed25519.PrivateKey(rootPrivateKey).Public().(ed25519.PublicKey))
+	h.Sum(srv)
+	srv = srv[:32]
+
 	return &Certificate{
-		googleBytes: certs[0],
-		bytes:       certs[1],
+		googleBytes:      certs[0],
+		bytes:            certs[1],
+		onlinePrivateKey: onlinePrivateKey,
+		srv:              srv,
 	}, nil
 }
 

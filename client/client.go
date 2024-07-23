@@ -106,7 +106,7 @@ func Get(server *config.Server, attempts int, timeout time.Duration, prev *Rough
 	}
 
 	// Create the request.
-	nonce, blind, request, err := protocol.CreateRequest(versionPreference, rand.Reader, prevReply)
+	nonce, blind, request, err := protocol.CreateRequest(versionPreference, rand.Reader, prevReply, server.PublicKey)
 	if err != nil {
 		panic(fmt.Sprintf("internal error: %s", err))
 	}
