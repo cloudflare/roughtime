@@ -304,7 +304,7 @@ func handleSRVTag(advertisedPreference []Version) bool {
 // chain, prevReply can be empty. It returns the nonce (needed to verify the
 // reply), the blind (needed to prove correct chaining to an external party)
 // and the request itself.
-func CreateRequest(versionPreference []Version, rand io.Reader, prevReply, rootPublicKey ed25519.PublicKey) (nonce, blind []byte, request []byte, err error) {
+func CreateRequest(versionPreference []Version, rand io.Reader, prevReply []byte, rootPublicKey ed25519.PublicKey) (nonce, blind []byte, request []byte, err error) {
 	advertisedVersions, versionIETF, err := advertisedVersionsFromPreference(versionPreference)
 	if err != nil {
 		return nil, nil, nil, err
