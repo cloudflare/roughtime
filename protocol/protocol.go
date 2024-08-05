@@ -291,8 +291,8 @@ func decodeFramed(req []byte) ([]byte, bool, error) {
 
 func handleSRVTag(advertisedPreference []Version) bool {
 	for _, version := range advertisedPreference {
-		// The SRV tag is first defined in draft-ietf-ntp-roughtime-10
-		if version == VersionDraft10 {
+		// The SRV tag is first defined in draft-ietf-ntp-roughtime-11
+		if version == VersionDraft11 {
 			return true
 		}
 	}

@@ -11,10 +11,10 @@ documentation](https://developers.cloudflare.com/time-services/roughtime/).
 
 ## Note on status
 
-This repository currently supports draft-ietf-ntp-roughtime-08. Backwards
-compatibility with this version is not guaranteed; users should expect breaking
-changes as the IETF process continues. Likewise, the API should be regarded as
-unstable.
+This repository currently supports draft-ietf-ntp-roughtime-11 and
+draft-ietf-ntp-roughtime-08. Backwards compatibility with this version is not
+guaranteed; users should expect breaking changes as the IETF process continues.
+Likewise, the API should be regarded as unstable.
 
 If you want to use this code and the protocol please join the NTP WG
 [mailing list](https://www.ietf.org/mailman/listinfo/ntp) so that you are

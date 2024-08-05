@@ -27,20 +27,20 @@ const (
 	// VersionDraft08 is draft-ietf-ntp-roughtime-08.
 	VersionDraft08 Version = 0x80000008
 
-	// VersionDraft10 is draft-ietf-ntp-roughtime-10.
-	VersionDraft10 Version = 0x8000000a
+	// VersionDraft11 is draft-ietf-ntp-roughtime-11.
+	VersionDraft11 Version = 0x8000000b
 )
 
 // allVersions is a list of all supported versions in order from newest to oldest.
 var allVersions = []Version{
-	VersionDraft10,
+	VersionDraft11,
 	VersionDraft08,
 	VersionGoogle,
 }
 
 // ietfVersions is a list of all IETF drafts in order from newest to oldest.
 var ietfVersions = []Version{
-	VersionDraft10,
+	VersionDraft11,
 	VersionDraft08,
 }
 
@@ -59,8 +59,8 @@ func (ver Version) String() string {
 		return "Google-Roughtime"
 	case VersionDraft08:
 		return "draft-ietf-ntp-roughtime-08"
-	case VersionDraft10:
-		return "draft-ietf-ntp-roughtime-10"
+	case VersionDraft11:
+		return "draft-ietf-ntp-roughtime-11"
 	default:
 		return fmt.Sprintf("%d", uint32(ver))
 	}
@@ -78,7 +78,7 @@ func (ver Version) String() string {
 // IETF-Roughtime.
 func advertisedVersionsFromPreference(versionPreference []Version) ([]Version, bool, error) {
 	if len(versionPreference) == 0 {
-		return []Version{VersionDraft10, VersionDraft08}, true, nil
+		return []Version{VersionDraft11, VersionDraft08}, true, nil
 	}
 
 	versionIETF := true
