@@ -89,8 +89,8 @@ func fileNmameFor(ver protocol.Version) string {
 		return "roughtime_google"
 	case protocol.VersionDraft08:
 		return "roughtime_ietf_draft08"
-	case protocol.VersionDraft10:
-		return "roughtime_ietf_draft10"
+	case protocol.VersionDraft11:
+		return "roughtime_ietf_draft11"
 	default:
 		panic("unhandled version")
 	}
@@ -101,7 +101,7 @@ func main() {
 		panic(err)
 	}
 
-	for _, ver := range []protocol.Version{protocol.VersionDraft10, protocol.VersionDraft08, protocol.VersionGoogle} {
+	for _, ver := range []protocol.Version{protocol.VersionDraft11, protocol.VersionDraft08, protocol.VersionGoogle} {
 		r := testing.NewTestRand()
 		clientVersionPref := []protocol.Version{ver}
 
