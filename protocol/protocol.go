@@ -400,13 +400,13 @@ func hashNode(out *[maxNonceSize]byte, left, right []byte) {
 }
 
 // newTree creates a Merkle tree given one or more nonces.
-func newTree(nonceSize int, nonces [][]byte) *tree {
-	if len(nonces) == 0 {
+func newTree(nonceSize int, requests []Request) *tree {
+	if len(requests) == 0 {
 		panic("newTree: passed empty slice")
 	}
 
 	levels := 1
-	width := len(nonces)
+	width := len(requests)
 	for width > 1 {
 		width = (width + 1) / 2
 		levels++
@@ -416,15 +416,15 @@ func newTree(nonceSize int, nonces [][]byte) *tree {
 		values: make([][][maxNonceSize]byte, 0, levels),
 	}
 
-	leaves := make([][maxNonceSize]byte, ((len(nonces)+1)/2)*2)
-	for i, nonce := range nonces {
+	leaves := make([][maxNonceSize]byte, ((len(requests)+1)/2)*2)
+	for i, req := range requests {
 		var leaf [maxNonceSize]byte
-		hashLeaf(&leaf, nonce)
+		hashLeaf(&leaf, req.Nonce)
 		leaves[i] = leaf
 	}
 	// Fill any extra leaves with an existing leaf, to simplify analysis
 	// that we are not inadvertently signing other messages.
-	for i := len(nonces); i < len(leaves); i++ {
+	for i := len(requests); i < len(leaves); i++ {
 		leaves[i] = leaves[0]
 	}
 	ret.values = append(ret.values, leaves)
@@ -558,15 +558,15 @@ func ParseRequest(bytes []byte) (req *Request, err error) {
 //
 // The same version is indicated in each reply. It's the callers responsibility
 // to ensure that each client supports this version.
-func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time.Duration, cert *Certificate) ([][]byte, error) {
+func CreateReplies(ver Version, requests []Request, midpoint time.Time, radius time.Duration, cert *Certificate) ([][]byte, error) {
 	versionIETF := ver != VersionGoogle
 	nonceSize := nonceSize(versionIETF)
 
-	if len(nonces) == 0 {
+	if len(requests) == 0 {
 		return nil, nil
 	}
 
-	tree := newTree(nonceSize, nonces)
+	tree := newTree(nonceSize, requests)
 
 	// Convert the midpoint and radius to their Roughtime representation.
 	var midPointUint64 uint64
@@ -610,9 +610,9 @@ func CreateReplies(ver Version, nonces [][]byte, midpoint time.Time, radius time
 		reply[tagVER] = encoded
 	}
 
-	replies := make([][]byte, 0, len(nonces))
+	replies := make([][]byte, 0, len(requests))
 
-	for i := range nonces {
+	for i := range requests {
 		var indexBytes [4]byte
 		binary.LittleEndian.PutUint32(indexBytes[:], uint32(i))
 		reply[tagINDX] = indexBytes[:]

@@ -157,7 +157,7 @@ func TestRunTestVectors(t *testing.T) {
 				panic(err)
 			}
 
-			nonces := make([][]byte, 0)
+			requests := make([]Request, 0)
 			advertisedVersions := make(map[Version]uint)
 			for _, ver := range allVersions {
 				advertisedVersions[ver] = 0
@@ -177,7 +177,7 @@ func TestRunTestVectors(t *testing.T) {
 					advertisedVersions[ver] += 1
 				}
 
-				nonces = append(nonces, req.Nonce)
+				requests = append(requests, *req)
 			}
 
 			supportedVersions := make([]Version, 0, len(allVersions))
@@ -191,7 +191,7 @@ func TestRunTestVectors(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, onlineCert)
+			replies, err := CreateReplies(responseVer, requests, testMidpoint, testRadius, onlineCert)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -209,7 +209,7 @@ func TestRunTestVectors(t *testing.T) {
 				}
 
 				// Make sure the responses verify properly.
-				_, _, err = VerifyReply([]Version{responseVer}, replies[i], rootPublicKey, nonces[i])
+				_, _, err = VerifyReply([]Version{responseVer}, replies[i], rootPublicKey, requests[i].Nonce)
 				if err != nil {
 					t.Error(err)
 				}
@@ -229,7 +229,7 @@ func TestRoundtrip(t *testing.T) {
 					advertisedVersions[ver] = 0
 				}
 
-				nonces := make([][]byte, 0, numRequests)
+				requests := make([]Request, 0, numRequests)
 				for i := 0; i < numRequests; i++ {
 					nonceSent, _, request, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKey)
 					if err != nil {
@@ -249,7 +249,7 @@ func TestRoundtrip(t *testing.T) {
 						advertisedVersions[ver] += 1
 					}
 
-					nonces = append(nonces, req.Nonce)
+					requests = append(requests, *req)
 				}
 
 				supportedVersions := make([]Version, 0, len(allVersions))
@@ -263,17 +263,17 @@ func TestRoundtrip(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				replies, err := CreateReplies(responseVer, nonces, testMidpoint, testRadius, cert)
+				replies, err := CreateReplies(responseVer, requests, testMidpoint, testRadius, cert)
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				if len(replies) != len(nonces) {
-					t.Fatalf("received %d replies for %d nonces", len(replies), len(nonces))
+				if len(replies) != len(requests) {
+					t.Fatalf("received %d replies for %d nonces", len(replies), len(requests))
 				}
 
 				for i, reply := range replies {
-					midpoint, radius, err := VerifyReply([]Version{responseVer}, reply, rootPublicKey, nonces[i])
+					midpoint, radius, err := VerifyReply([]Version{responseVer}, reply, rootPublicKey, requests[i].Nonce)
 					if err != nil {
 						t.Errorf("error parsing reply #%d: %s", i, err)
 						continue
@@ -301,22 +301,32 @@ func TestChaining(t *testing.T) {
 
 	for _, ver := range allVersions {
 		t.Run(ver.String(), func(t *testing.T) {
-			nonce1, _, _, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKeyA)
+			_, _, req1Bytes, err := CreateRequest([]Version{ver}, rand.Reader, nil, rootPublicKeyA)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			replies1, err := CreateReplies(ver, [][]byte{nonce1[:]}, testMidpoint, testRadius, certA)
+			req1, err := ParseRequest(req1Bytes)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			nonce2, blind2, _, err := CreateRequest([]Version{ver}, rand.Reader, replies1[0], rootPublicKeyB)
+			replies1, err := CreateReplies(ver, []Request{*req1}, testMidpoint, testRadius, certA)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			replies2, err := CreateReplies(ver, [][]byte{nonce2[:]}, testMidpoint.Add(time.Duration(-10)*time.Second), testRadius, certB)
+			_, blind2, req2Bytes, err := CreateRequest([]Version{ver}, rand.Reader, replies1[0], rootPublicKeyB)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req2, err := ParseRequest(req2Bytes)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			replies2, err := CreateReplies(ver, []Request{*req2}, testMidpoint.Add(time.Duration(-10)*time.Second), testRadius, certB)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -333,7 +343,7 @@ func TestChaining(t *testing.T) {
 			}
 
 			claim := []claimStep{
-				{rootPublicKeyA, nonce1, replies1[0]},
+				{rootPublicKeyA, req1.Nonce, replies1[0]},
 				{rootPublicKeyB, blind2, replies2[0]},
 			}
 
