@@ -25,6 +25,7 @@ import (
 	"crypto/sha512"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"sort"
@@ -557,10 +558,17 @@ func ParseRequest(bytes []byte) (req *Request, err error) {
 // signature and includes cert in each.
 //
 // The same version is indicated in each reply. It's the callers responsibility
-// to ensure that each client supports this version.
+// to ensure that each client supports this version. Likewise, the server
+// indicated by each request, if any, must match the certificate.
 func CreateReplies(ver Version, requests []Request, midpoint time.Time, radius time.Duration, cert *Certificate) ([][]byte, error) {
 	versionIETF := ver != VersionGoogle
 	nonceSize := nonceSize(versionIETF)
+
+	for i := range requests {
+		if len(requests[i].srv) > 0 && !bytes.Equal(requests[i].srv, cert.srv) {
+			return nil, fmt.Errorf("request %d indicates the wrong server", i)
+		}
+	}
 
 	if len(requests) == 0 {
 		return nil, nil
