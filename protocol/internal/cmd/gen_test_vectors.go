@@ -112,23 +112,27 @@ func main() {
 			testVec.OnlineKey = ONLINE_KEY_HEX
 
 			// Set the requests and replies.
-			nonces := make([][]byte, 0, numRequestsPerBatch)
+			requests := make([]protocol.Request, 0, numRequestsPerBatch)
 			for i := 0; i < numRequestsPerBatch; i++ {
-				nonce, _, request, err := protocol.CreateRequest(clientVersionPref, r, nil, rootPublicKey)
+				_, _, reqBytes, err := protocol.CreateRequest(clientVersionPref, r, nil, rootPublicKey)
 				if err != nil {
 					panic(err)
 				}
-				testVec.Requests = append(testVec.Requests, hex.EncodeToString(request))
-				nonces = append(nonces, nonce[:])
+				req, err := protocol.ParseRequest(reqBytes)
+				if err != nil {
+					panic(err)
+				}
+				testVec.Requests = append(testVec.Requests, hex.EncodeToString(reqBytes))
+				requests = append(requests, *req)
 			}
 
-			replies, err := protocol.CreateReplies(ver, nonces, testMidpoint, testRadius, onlineCert)
+			replies, err := protocol.CreateReplies(ver, requests, testMidpoint, testRadius, onlineCert)
 			if err != nil {
 				panic(err)
 			}
 
 			for i := 0; i < numRequestsPerBatch; i++ {
-				_, _, err = protocol.VerifyReply(clientVersionPref, replies[i], rootPublicKey, nonces[i])
+				_, _, err = protocol.VerifyReply(clientVersionPref, replies[i], rootPublicKey, requests[i].Nonce)
 				if err != nil {
 					panic(err)
 				}

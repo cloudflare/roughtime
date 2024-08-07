@@ -115,7 +115,7 @@ func handleRequest(requestBytes []byte, cert *protocol.Certificate, onlineSK ed2
 	}
 
 	// Parse the request and create the response.
-	replies, err := protocol.CreateReplies(responseVer, [][]byte{req.Nonce}, time.Now(), radius, cert)
+	replies, err := protocol.CreateReplies(responseVer, []protocol.Request{*req}, time.Now(), radius, cert)
 	if err != nil {
 		return nil, err
 	}
