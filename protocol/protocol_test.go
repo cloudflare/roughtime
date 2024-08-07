@@ -545,5 +545,25 @@ func TestSelectCertificateForRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateReplyForIncorrectCertificate(t *testing.T) {
+	_, unknownRootPublicKey := createServerIdentity(t)
+	cert, _ := createServerIdentity(t)
+
+	_, _, reqBytes, err := CreateRequest(nil, rand.Reader, nil, unknownRootPublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := ParseRequest(reqBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = CreateReplies(VersionDraft11, []Request{*req}, time.Now(), 0, cert)
+	if err == nil {
+		t.Error("expected failure")
+	}
 
 }
