@@ -625,6 +625,8 @@ func CreateReplies(ver Version, requests []Request, midpoint time.Time, radius t
 		binary.LittleEndian.PutUint32(indexBytes[:], uint32(i))
 		reply[tagINDX] = indexBytes[:]
 
+		reply[tagNONC] = requests[i].Nonce
+
 		path := tree.Path(i)
 		pathBytes := make([]byte, 0, nonceSize*len(path))
 		for _, pathStep := range path {
@@ -655,7 +657,7 @@ type Certificate struct {
 
 	// srv is the payload of the SRV tag that the client would send to indicate
 	// the root public key delegated by this certificate.
-	srv ed25519.PublicKey
+	srv []byte
 }
 
 // BytesForVersion returns a serialized certificate compatible with the given
