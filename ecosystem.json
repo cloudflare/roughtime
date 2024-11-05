@@ -35,6 +35,18 @@
           "address": "time.txryan.com:2002"
         }
       ]
+    },
+    {
+      "name": "roughtime.se",
+      "version": "IETF-Roughtime",
+      "publicKeyType": "ed25519",
+      "publicKey": "S3AzfZJ5CjSdkJ21ZJGbxqdYP/SoE8fXKY0+aicsehI=",
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "roughtime.se:2002"
+        }
+      ]
     }
   ]
 }

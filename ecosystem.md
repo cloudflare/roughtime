@@ -75,6 +75,17 @@ No uptime is guaranteed, but the server is constantly monitored for accuracy and
 availability. From time to time, there may be a few minutes of downtime for
 server maintenance.
 
+## roughtime.se
+
+[roughtime.se](https://roughtime.se) provides a stratum 1 Roughtime service. It runs the
+[roughtimed](https://github.com/dansarie/roughtimed) implementation. Hosting is provided by STUPI AB
+and the server is directly connected to atomic clocks that track the UTC timescale. The aim is for
+the server to be compatible with the latest published IETF Roughtime draft. The public key is
+available on the server's web site, and as a DNS TXT record:
+
+```
+dig TXT roughtime.se
+```
 
 ## Inactive servers
 
