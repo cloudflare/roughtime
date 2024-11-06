@@ -49,6 +49,21 @@ and the DNS `TXT` record of `roughtime.int08h.com`:
 $ dig -t txt roughtime.int08h.com
 ```
 
+## roughtime.se
+
+[roughtime.se](https://roughtime.se) provides a stratum 1 Roughtime service. It runs the
+[roughtimed](https://github.com/dansarie/roughtimed) implementation. Hosting is provided by STUPI
+AB. The server is located in Stockholm, Sweden and is directly connected to atomic clocks that track
+the UTC timescale. The aim is for the server to be compatible with the [latest published IETF
+Roughtime draft](https://datatracker.ietf.org/doc/draft-ietf-ntp-roughtime/). The server is
+connected to high-availability power and network infrastructure in a datacenter, however no
+availability is guaranteed. The public key is available on the server's web site, and as a DNS TXT
+record:
+
+```
+dig TXT roughtime.se
+```
+
 ## time.txryan.com
 
 [time.txryan.com](https://time.txryan.com) runs on a stratum 2 NTP server.
@@ -74,18 +89,6 @@ implementation](https://roughtime.googlesource.com/roughtime/).
 No uptime is guaranteed, but the server is constantly monitored for accuracy and
 availability. From time to time, there may be a few minutes of downtime for
 server maintenance.
-
-## roughtime.se
-
-[roughtime.se](https://roughtime.se) provides a stratum 1 Roughtime service. It runs the
-[roughtimed](https://github.com/dansarie/roughtimed) implementation. Hosting is provided by STUPI AB
-and the server is directly connected to atomic clocks that track the UTC timescale. The aim is for
-the server to be compatible with the latest published IETF Roughtime draft. The public key is
-available on the server's web site, and as a DNS TXT record:
-
-```
-dig TXT roughtime.se
-```
 
 ## Inactive servers
 

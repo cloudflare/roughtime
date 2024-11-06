@@ -25,18 +25,6 @@
       ]
     },
     {
-      "name": "time.txryan.com",
-      "version": "Google-Roughtime",
-      "publicKeyType": "ed25519",
-      "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
-      "addresses": [
-        {
-          "protocol": "udp",
-          "address": "time.txryan.com:2002"
-        }
-      ]
-    },
-    {
       "name": "roughtime.se",
       "version": "IETF-Roughtime",
       "publicKeyType": "ed25519",
@@ -45,6 +33,18 @@
         {
           "protocol": "udp",
           "address": "roughtime.se:2002"
+        }
+      ]
+    },
+    {
+      "name": "time.txryan.com",
+      "version": "Google-Roughtime",
+      "publicKeyType": "ed25519",
+      "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
+      "addresses": [
+        {
+          "protocol": "udp",
+          "address": "time.txryan.com:2002"
         }
       ]
     }
