@@ -567,3 +567,53 @@ func TestCreateReplyForIncorrectCertificate(t *testing.T) {
 	}
 
 }
+
+func FuzzParseRequest(f *testing.F) {
+
+	for _, fileName := range []string{
+		"testdata/roughtime_ietf_draft08_001.json",
+		"testdata/roughtime_ietf_draft08_010.json",
+		"testdata/roughtime_ietf_draft08_100.json",
+		"testdata/roughtime_ietf_draft11_001.json",
+		"testdata/roughtime_ietf_draft11_010.json",
+		"testdata/roughtime_ietf_draft11_100.json",
+		"testdata/roughtime_google_001.json",
+		"testdata/roughtime_google_010.json",
+		"testdata/roughtime_google_100.json",
+	} {
+		fp, err := os.Open(fileName)
+		if err != nil {
+			continue
+		}
+
+		testVecBytes, err := io.ReadAll(fp)
+		if err != nil {
+			continue
+		}
+
+		var testVec protocolTesting.TestVector
+		if err = json.Unmarshal(testVecBytes, &testVec); err != nil {
+			continue
+		}
+
+		for _, request := range testVec.Requests {
+			requestBytes, err := hex.DecodeString(request)
+			if err == nil {
+				f.Add(requestBytes)
+			}
+		}
+	}
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		_, _ = ParseRequest(data)
+	})
+}
+
+func FuzzVerifyReply(f *testing.F) {
+
+	f.Fuzz(func(t *testing.T, replyBytes []byte, publicKey []byte, nonce []byte) {
+		for _, ver := range allVersions {
+			_, _, _ = VerifyReply([]Version{ver}, replyBytes, publicKey, nonce)
+		}
+	})
+}
