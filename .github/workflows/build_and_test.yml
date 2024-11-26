@@ -92,6 +92,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6.1.1
         with:
-          version: v1.54
+          version: v1.62.0
+          install-mode: goinstall
