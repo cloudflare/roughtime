@@ -569,7 +569,6 @@ func TestCreateReplyForIncorrectCertificate(t *testing.T) {
 }
 
 func FuzzParseRequest(f *testing.F) {
-
 	for _, fileName := range []string{
 		"testdata/roughtime_ietf_draft08_001.json",
 		"testdata/roughtime_ietf_draft08_010.json",
@@ -610,7 +609,6 @@ func FuzzParseRequest(f *testing.F) {
 }
 
 func FuzzVerifyReply(f *testing.F) {
-
 	f.Fuzz(func(t *testing.T, replyBytes []byte, publicKey []byte, nonce []byte) {
 		for _, ver := range allVersions {
 			_, _, _ = VerifyReply([]Version{ver}, replyBytes, publicKey, nonce)
