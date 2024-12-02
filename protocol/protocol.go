@@ -855,13 +855,14 @@ func VerifyReply(versionPreference []Version, replyBytes, publicKey []byte, nonc
 		return midp, radi, errUnsupportedVersion([]Version{responseVer})
 	}
 
-	// Make sure the NONC tag is present and indicates the same nonce as sent in request
+	// Make sure the NONC tag is present and indicates the same nonce as sent in
+	// request.
 	if versionIETF {
-		responseNonc, ok := reply[tagNONC]
+		responseNONC, ok := reply[tagNONC]
 		if !ok {
 			return midp, radi, errors.New("protocol: response is missing NONC tag")
 		}
-		if !bytes.Equal(nonce, responseNonc) {
+		if !bytes.Equal(nonce, responseNONC) {
 			return midp, radi, errors.New("protocol: nonce in responce is different from nonce in request")
 		}
 	}
