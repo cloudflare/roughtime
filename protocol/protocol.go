@@ -625,6 +625,8 @@ func CreateReplies(ver Version, requests []Request, midpoint time.Time, radius t
 		binary.LittleEndian.PutUint32(indexBytes[:], uint32(i))
 		reply[tagINDX] = indexBytes[:]
 
+		reply[tagNONC] = requests[i].Nonce
+
 		path := tree.Path(i)
 		pathBytes := make([]byte, 0, nonceSize*len(path))
 		for _, pathStep := range path {
@@ -655,7 +657,7 @@ type Certificate struct {
 
 	// srv is the payload of the SRV tag that the client would send to indicate
 	// the root public key delegated by this certificate.
-	srv ed25519.PublicKey
+	srv []byte
 }
 
 // BytesForVersion returns a serialized certificate compatible with the given
@@ -851,6 +853,18 @@ func VerifyReply(versionPreference []Version, replyBytes, publicKey []byte, nonc
 	}
 	if !versionOK {
 		return midp, radi, errUnsupportedVersion([]Version{responseVer})
+	}
+
+	// Make sure the NONC tag is present and indicates the same nonce as sent in
+	// request.
+	if versionIETF {
+		responseNONC, ok := reply[tagNONC]
+		if !ok {
+			return midp, radi, errors.New("protocol: response is missing NONC tag")
+		}
+		if !bytes.Equal(nonce, responseNONC) {
+			return midp, radi, errors.New("protocol: nonce in responce is different from nonce in request")
+		}
 	}
 
 	cert, err := getSubmessage(reply, tagCERT, "certificate")
