@@ -30,6 +30,18 @@ var Ecosystem = []config.Server{
 		},
 	},
 	{
+		Name:          "roughtime.se",
+		Version:       "IETF-Roughtime",
+		PublicKeyType: "ed25519",
+		PublicKey:     []byte{75, 112, 51, 125, 146, 121, 10, 52, 157, 144, 157, 181, 100, 145, 155, 198, 167, 88, 63, 244, 168, 19, 199, 215, 41, 141, 62, 106, 39, 44, 122, 18},
+		Addresses: []config.ServerAddress{
+			{
+				Protocol: "udp",
+				Address:  "roughtime.se:2002",
+			},
+		},
+	},
+	{
 		Name:          "time.txryan.com",
 		Version:       "Google-Roughtime",
 		PublicKeyType: "ed25519",
