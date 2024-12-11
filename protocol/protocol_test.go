@@ -609,9 +609,28 @@ func FuzzParseRequest(f *testing.F) {
 }
 
 func FuzzVerifyReply(f *testing.F) {
-	f.Fuzz(func(t *testing.T, replyBytes []byte, publicKey []byte, nonce []byte) {
+	replyBytes, _ := hex.DecodeString("524f55474854494d7c0100000700000040000000440000006400000064000000a80000004001000053494700564552004e4f4e43504154485352455043455254494e44584c274e9d3b48a6e4f4ddcb10f52d9bf6264c28136717c99568e9a807aaf800572c7c34c89267fea1b9ff29ce9a986c5a8eb43664612e09ec8e2aaee21bed040608000080cbc848bc48dc3e129525ff673435ee04bb08976d51c84c650e1cf3785cce0f4a03000000040000000c000000524144494d494450524f4f54050000003200000000000000af1d404574c9b4464e2a601bf47ae118080b007b96c1c2d1c8d7576cef40e36002000000400000005349470044454c45723fdab135deedb4d1e2ee7e8254881463fda216bd901421ef26b3046eae88937b4346cba4d5d2c33917be636e2e4c883db231ccdbb87d902f8f86f7c216ea000300000020000000280000005055424b4d494e544d41585481d19b7ff58d408302a83f24da533dde16b71f80f8c1b8ce2798ae1571de37790000000000000000640000000000000000000000")
+	publicKey, _ := hex.DecodeString("1ce90cc9d5476809f9088f52018d9a8e5b8449951e2468e13de00d0234d50d14")
+	nonce, _ := hex.DecodeString("cbc848bc48dc3e129525ff673435ee04bb08976d51c84c650e1cf3785cce0f4a")
+
+	combined := append(replyBytes, ':')
+	combined = append(combined, publicKey...)
+	combined = append(combined, ':')
+	combined = append(combined, nonce...)
+	f.Add(combined)
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		parts := bytes.SplitN(data, []byte(":"), 3)
+		if len(parts) != 3 {
+			t.Skip()
+		}
+
+		if len(parts[0]) < 1 || len(parts[1]) != 32 || len(parts[2]) < 1 {
+			t.Skip()
+		}
+
 		for _, ver := range allVersions {
-			_, _, _ = VerifyReply([]Version{ver}, replyBytes, publicKey, nonce)
+			_, _, _ = VerifyReply([]Version{ver}, parts[0], parts[1], parts[2])
 		}
 	})
 }
