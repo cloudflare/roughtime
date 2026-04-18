@@ -38,7 +38,7 @@
     },
     {
       "name": "time.txryan.com",
-      "version": "Google-Roughtime",
+      "version": "IETF-Roughtime",
       "publicKeyType": "ed25519",
       "publicKey": "iBVjxg/1j7y1+kQUTBYdTabxCppesU/07D4PMDJk2WA=",
       "addresses": [

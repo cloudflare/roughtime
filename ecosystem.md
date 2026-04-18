@@ -67,29 +67,19 @@ dig TXT roughtime.se
 
 ## time.txryan.com
 
-[time.txryan.com](https://time.txryan.com) runs on a stratum 2 NTP server.
+[time.txryan.com](https://time.txryan.com) is a stratum 2 server, synchronized
+to stratum 1 upstreams backed by GNSS receivers and national metrology
+institutes (NIST, NRC). Typical accuracy is ±50 microseconds. No uptime or
+accuracy guarantees are offered, but the server is actively monitored.
 
-The clock is synchronized with authenticated NTP connections to NIST (National
-Institute of Standards and Technology), and the Canadian equivalent, NRC
-(National Research Council Canada), which are both directly connected to atomic
-sources (caesium fountains and/or hydrogen masers). There are also multiple
-unauthenticated stratum 1 upstreams, maintained by GNSS (GPS + Galileo +
-GLONASS). The accuracy is typically within +/- 50 microseconds.
-
-The Roughtime service is accessible at `time.txryan.com:2002`. The public key is
-available on time.txryan.com's [website](https://time.txryan.com), or through a
-DNS TXT lookup.
+At the time of writing, the server is available at `time.txryan.com:2002` and
+implements both Google-Roughtime and IETF Roughtime (drafts 00–19), powered by
+[tannerryan/roughtime](https://github.com/tannerryan/roughtime). The public key
+is published on the [website](https://time.txryan.com) and as a DNS TXT record:
 
 ```
 dig TXT time.txryan.com +short
 ```
-
-The Roughtime service is powered by Google's [Go reference
-implementation](https://roughtime.googlesource.com/roughtime/).
-
-No uptime is guaranteed, but the server is constantly monitored for accuracy and
-availability. From time to time, there may be a few minutes of downtime for
-server maintenance.
 
 
 ## Inactive servers
