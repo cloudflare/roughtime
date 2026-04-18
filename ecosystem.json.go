@@ -43,7 +43,7 @@ var Ecosystem = []config.Server{
 	},
 	{
 		Name:          "time.txryan.com",
-		Version:       "Google-Roughtime",
+		Version:       "IETF-Roughtime",
 		PublicKeyType: "ed25519",
 		PublicKey:     []byte{136, 21, 99, 198, 15, 245, 143, 188, 181, 250, 68, 20, 76, 22, 29, 77, 166, 241, 10, 154, 94, 177, 79, 244, 236, 62, 15, 48, 50, 100, 217, 96},
 		Addresses: []config.ServerAddress{
